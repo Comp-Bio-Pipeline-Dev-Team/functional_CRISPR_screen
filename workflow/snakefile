@@ -1,0 +1,129 @@
+rule all:
+    input:
+        directory("path/to/outDir"),
+        "fastqc_crispr_screen.html",
+        directory("path/to/cudadapt/outDir"),
+        directory("path/to/unalignedOutDir"),
+        directory("path/to/bowtie/outDir"),
+        directory("path/to/count/outDir")
+
+
+
+## STEP 0: running fastqc and multiqc
+## update everything that should be a path with a forward slash
+rule run_fastqc:
+    input:
+        inDir = directory("path/to/inDir/")
+    output:
+        outDir = directory("path/to/outDir")
+    conda:
+        fastqc
+    params:
+        thread_n = 8
+    shell:
+        """
+        echo "running fastqc"
+
+        fastqc {input.inDir}*.fastq.gz -o {output.outDir} --threads {params.thread_n}
+        """
+
+
+rule run_multiqc:
+    input:
+        inDir = directory("path/to/outDir/above")
+    output:
+        fastq_report_out = "fastqc_crispr_screen.html"
+    conda:
+        multiqc
+    shell:
+        """
+        echo "running multiqc"
+        
+        multiqc -o {input.inDir} --filename {output.fastq_report_out} .
+        """
+
+## STEP 1: running cutadapt
+## specify how many samples can be run at the same time - config spec. w default 
+## may need to use "wildcards" for this
+## come in pairs - R1 and R2 put them together as the input 
+## outputs 2 fastqs per sample
+rule run_cutadapt:
+    input:
+        ## may want to mask the sample prefix wildcard 
+        in_samples = expand("{{sample_prefix}}_{read}_001.fastq.gz", read=["R1", "R2"])
+        inDir = directory("path/to/inDir/above")
+    output:
+        outDir = directory("path/to/cutadapt/outDir")
+    conda:
+        cutadapt
+    params:
+        guide_seq = "\"TTGTGGAAAGGACGAAACACCG;min_overlap=10;e=0.2\"",
+        guide_length = 20
+    shell:
+        """
+        cutadapt -g {params.guide_seq} \
+                 --length={params.guide_length} \
+                 -o {output.outDir}{}_trimmed_fastq.gz {input.inDir}{}_R1_001.fastq.gz
+        """
+
+
+## STEP 2: running bowtie1
+## combines cutadapt paired files to one sample file 
+rule run_bowtie:
+    input:
+        inDir = directory("path/to/cudadapt/outDir"),
+        bowtie_index = "path/to/human_crispr_sg_brunello"
+    output:
+        unalignedOutDir = directory("path/to/unalignedOutDir"),
+        outDir = directory("path/to/bowtie/outDir")
+    ## can specify log outputs here
+    log:
+        log = "path/to/bowtie/outDir/{sample_prefix}_mismatches_allowed.log",
+        err = "path/to/bowtie/outDir/{sample_prefix}_mismatches_allowed.err"
+    conda:
+        bowtie1
+    params:
+        mismatches = 0,
+        sample_prefix = "sample names go here"
+    shell:
+        """
+        bowtie1 -p 4 \
+                {input.bowtie_index} {input.inDir} \
+                -S \
+                --no-unal \
+                --trim5 0 \
+                --trim3 0 \
+                --best \
+                --strata \
+                -m 1 \
+                --un {output.unalignedOutDir}{SAMPLE_PREFIX}_mismatches_allowed_unaligned \
+                -v {params.mismatches} > {output.outDir}{SAMPLE_PREFIX}_mismatches_allowed.sam \
+                1>{log.log} \
+                2>{log.err}
+        """
+
+## STEP 3: counting guides in bbmap
+rule run_bbmap:
+    input:
+        inDir = directory("path/to/bowtie/outDir")
+    output:
+        outDir = directory("path/to/count/outDir")
+    log:
+        log = "path/to/count/outDir/{sample_prefix}_bbpileup.log",
+        err = "path/to/count/outDir/{sample_prefix}_bbpileup.err"
+    conda:
+        bbmap
+    params:
+        bbmap_pileup = "bbmap/pileup.sh"
+    shell:
+     """
+     {params.bbmap_pileup} in={input.inDir}{SAMPLE_PREFIX}.sam \
+                           out={output.outDir}{SAMPLE_PREFIX}_counts.txt \
+                           1>{log.log} \
+                           2>{log.err}
+     """
+
+
+
+
+        
