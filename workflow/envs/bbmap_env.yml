@@ -1,0 +1,12 @@
+name: bbmap
+channels:
+  - bioconda
+  - conda-forge
+  - anaconda
+dependencies:
+  - bbmap
+  - pip
+  - pip:
+    - snakemake
+
+## referenced as bbmap.sh in the command line

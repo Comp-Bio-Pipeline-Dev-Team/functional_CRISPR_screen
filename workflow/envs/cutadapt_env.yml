@@ -1,0 +1,13 @@
+name: cutadapt
+channels:
+  - bioconda
+  - conda-forge
+  - anaconda
+dependencies:
+  - cutadapt
+  - pip
+  - pip:
+    - snakemake
+
+## might need this for macos arm64
+## CONDA_SUBDIR=osx-64 conda create -n cutadapt cutadapt

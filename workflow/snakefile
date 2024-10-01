@@ -1,11 +1,45 @@
+import pandas as pd
+
+sample_id_file = pd.read_csv(config["sample_id_file"])
+SAMPLE_PREFIX = sample_id_file["sample_name"]
+RAW_SEQ_IN = config["raw_seq_in"]
+
+
+FASTQC_ENV = "fastqc"
+##config["fastqc_env"]
+MULTIQC_ENV = "multiqc"
+##config["multiqc_env"]
+CUTADAPT_ENV = "cutadapt"
+##config["cutadapt_env"]
+BOWTIE_ENV = "bowtie1"
+##config["bowtie_env"]
+BBMAP_ENV = "bbmap"
+##config["bbmap_env"]
+
+
+
 rule all:
     input:
-        directory("path/to/outDir"),
+        directory("fastqc_outputs"),
         "fastqc_crispr_screen.html",
-        directory("path/to/cudadapt/outDir"),
-        directory("path/to/unalignedOutDir"),
-        directory("path/to/bowtie/outDir"),
-        directory("path/to/count/outDir")
+        expand("cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz",
+                sample_prefix = SAMPLE_PREFIX),
+        expand("bowtie_unaligned/{sample_prefix}_mismatches_allowed_unaligned.sam",
+               sample_prefix=SAMPLE_PREFIX),
+        expand("bowtie_aligned/{sample_prefix}_mismatches_allowed.sam",
+               sample_prefix=SAMPLE_PREFIX),
+        expand("bowtie_aligned/{sample_prefix}_mismatches_allowed.log",
+                sample_prefix=SAMPLE_PREFIX),
+        expand("bowtie_aligned/{sample_prefix}_mismatches_allowed.err",
+                sample_prefix=SAMPLE_PREFIX),
+        expand("count_output/{sample_prefix}_counts.txt",
+                sample_prefix=SAMPLE_PREFIX),
+        expand("count_output/{sample_prefix}_bbpileup.log",
+                sample_prefix=SAMPLE_PREFIX),
+        expand("count_output/{sample_prefix}_bbpileup.err",
+                sample_prefix=SAMPLE_PREFIX)
+        
+
 
 
 
@@ -13,11 +47,11 @@ rule all:
 ## update everything that should be a path with a forward slash
 rule run_fastqc:
     input:
-        inDir = directory("path/to/inDir/")
+        inDir = RAW_SEQ_IN
     output:
-        outDir = directory("path/to/outDir")
+        outDir = directory("fastqc_outputs")
     conda:
-        fastqc
+        FASTQC_ENV
     params:
         thread_n = 8
     shell:
@@ -30,11 +64,11 @@ rule run_fastqc:
 
 rule run_multiqc:
     input:
-        inDir = directory("path/to/outDir/above")
+        inDir = "fastqc_outputs"
     output:
         fastq_report_out = "fastqc_crispr_screen.html"
     conda:
-        multiqc
+        MULTIQC_ENV
     shell:
         """
         echo "running multiqc"
@@ -49,13 +83,15 @@ rule run_multiqc:
 ## outputs 2 fastqs per sample
 rule run_cutadapt:
     input:
-        ## may want to mask the sample prefix wildcard 
-        in_samples = expand("{{sample_prefix}}_{read}_001.fastq.gz", read=["R1", "R2"])
-        inDir = directory("path/to/inDir/above")
+        ## may want to mask the sample prefix wildcard
+        ## update, we don't need this anymore bc the reads are single end  
+        ##in_samples = expand("{{sample_prefix}}_{read}_001.fastq.gz", read=["R1", "R2"])
+        in_samples = expand("fastqc_outputs/{sample_prefix}_R1_001.fastq.gz",
+                             sample_prefix = SAMPLE_PREFIX)
     output:
-        outDir = directory("path/to/cutadapt/outDir")
+        out_samples = "cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz"
     conda:
-        cutadapt
+        CUTADAPT_ENV
     params:
         guide_seq = "\"TTGTGGAAAGGACGAAACACCG;min_overlap=10;e=0.2\"",
         guide_length = 20
@@ -63,7 +99,7 @@ rule run_cutadapt:
         """
         cutadapt -g {params.guide_seq} \
                  --length={params.guide_length} \
-                 -o {output.outDir}{}_trimmed_fastq.gz {input.inDir}{}_R1_001.fastq.gz
+                 -o {output.out_samples} {input.in_samples}
         """
 
 
@@ -71,24 +107,23 @@ rule run_cutadapt:
 ## combines cutadapt paired files to one sample file 
 rule run_bowtie:
     input:
-        inDir = directory("path/to/cudadapt/outDir"),
+        in_samples = "cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz",
         bowtie_index = "path/to/human_crispr_sg_brunello"
     output:
-        unalignedOutDir = directory("path/to/unalignedOutDir"),
-        outDir = directory("path/to/bowtie/outDir")
+        unaligned_out = "bowtie_unaligned/{sample_prefix}_mismatches_allowed_unaligned.sam",
+        aligned_out = "bowtie_aligned/{sample_prefix}_mismatches_allowed.sam"
     ## can specify log outputs here
     log:
-        log = "path/to/bowtie/outDir/{sample_prefix}_mismatches_allowed.log",
-        err = "path/to/bowtie/outDir/{sample_prefix}_mismatches_allowed.err"
+        log = "bowtie_aligned/{sample_prefix}_mismatches_allowed.log",
+        err = "bowtie_aligned/{sample_prefix}_mismatches_allowed.err"
     conda:
-        bowtie1
+        BOWTIE_ENV
     params:
-        mismatches = 0,
-        sample_prefix = "sample names go here"
+        mismatches = 0
     shell:
         """
         bowtie1 -p 4 \
-                {input.bowtie_index} {input.inDir} \
+                {input.bowtie_index} {input.in_samples} \
                 -S \
                 --no-unal \
                 --trim5 0 \
@@ -96,8 +131,8 @@ rule run_bowtie:
                 --best \
                 --strata \
                 -m 1 \
-                --un {output.unalignedOutDir}{SAMPLE_PREFIX}_mismatches_allowed_unaligned \
-                -v {params.mismatches} > {output.outDir}{SAMPLE_PREFIX}_mismatches_allowed.sam \
+                --un {output.unaligned_out} \
+                -v {params.mismatches} > {output.aligned_out} \
                 1>{log.log} \
                 2>{log.err}
         """
@@ -105,20 +140,21 @@ rule run_bowtie:
 ## STEP 3: counting guides in bbmap
 rule run_bbmap:
     input:
-        inDir = directory("path/to/bowtie/outDir")
+        in_samples = "bowtie_aligned/{sample_prefix}_mismatches_allowed.sam"
     output:
-        outDir = directory("path/to/count/outDir")
+        count_out = "count_output/{sample_prefix}_counts.txt"
     log:
-        log = "path/to/count/outDir/{sample_prefix}_bbpileup.log",
-        err = "path/to/count/outDir/{sample_prefix}_bbpileup.err"
+        log = "count_output/{sample_prefix}_bbpileup.log",
+        err = "count_output/{sample_prefix}_bbpileup.err"
     conda:
-        bbmap
+        BBMAP_ENV
     params:
+        ## im not sure if we'll need this since the conda install of bbmap doesn't require you to specify pileup.sh
         bbmap_pileup = "bbmap/pileup.sh"
     shell:
      """
-     {params.bbmap_pileup} in={input.inDir}{SAMPLE_PREFIX}.sam \
-                           out={output.outDir}{SAMPLE_PREFIX}_counts.txt \
+     {params.bbmap_pileup} in={input.in_samples} \
+                           out={output.count_out} \
                            1>{log.log} \
                            2>{log.err}
      """

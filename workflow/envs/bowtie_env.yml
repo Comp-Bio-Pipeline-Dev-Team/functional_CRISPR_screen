@@ -1,0 +1,10 @@
+name: bowtie1
+channels:
+  - bioconda
+  - conda-forge
+  - anaconda
+dependencies:
+  - bowtie
+  - pip
+  - pip:
+    - snakemake

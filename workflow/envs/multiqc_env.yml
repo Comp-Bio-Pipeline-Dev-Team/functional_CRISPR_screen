@@ -1,0 +1,10 @@
+name: multiqc
+channels:
+  - bioconda
+  - conda-forge
+  - anaconda
+dependencies:
+  - pip
+  - pip:
+    - multiqc
+    - snakemake
