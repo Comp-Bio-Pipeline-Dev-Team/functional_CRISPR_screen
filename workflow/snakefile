@@ -1,42 +1,45 @@
 import pandas as pd
+import os
 
+## ----USER PROVIDED INPUTS---
+## via the config paramter in run_snakemake.sh
 sample_id_file = pd.read_csv(config["sample_id_file"])
-SAMPLE_PREFIX = sample_id_file["sample_name"]
+SAMPLE_PREFIX = sample_id_file["sampleid"]
+print(SAMPLE_PREFIX)
+
 RAW_SEQ_IN = config["raw_seq_in"]
+BOWTIE_INDEX = config["crispr_sg_index"]
 
-
+## ----ENVIRONMENTS----
+## soon to be docker singularities
+## we don't want users to have access to this 
 FASTQC_ENV = "fastqc"
-##config["fastqc_env"]
 MULTIQC_ENV = "multiqc"
-##config["multiqc_env"]
 CUTADAPT_ENV = "cutadapt"
-##config["cutadapt_env"]
 BOWTIE_ENV = "bowtie1"
-##config["bowtie_env"]
 BBMAP_ENV = "bbmap"
-##config["bbmap_env"]
 
-
-
+## ----WORKFLOW----
+## only need to use `expand` in rule all 
 rule all:
     input:
-        directory("fastqc_outputs"),
-        "fastqc_crispr_screen.html",
-        expand("cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz",
+        "crispr_screen_out/fastqc_outputs/",
+        "crispr_screen_out/multiqc_outputs/fastqc_crispr_screen.html",
+        expand("crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz", 
                 sample_prefix = SAMPLE_PREFIX),
-        expand("bowtie_unaligned/{sample_prefix}_mismatches_allowed_unaligned.sam",
+        expand("crispr_screen_out/bowtie_unaligned/{sample_prefix}_mismatches_allowed_unaligned.sam",
                sample_prefix=SAMPLE_PREFIX),
-        expand("bowtie_aligned/{sample_prefix}_mismatches_allowed.sam",
+        expand("crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.sam",
                sample_prefix=SAMPLE_PREFIX),
-        expand("bowtie_aligned/{sample_prefix}_mismatches_allowed.log",
+        expand("crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.log",
                 sample_prefix=SAMPLE_PREFIX),
-        expand("bowtie_aligned/{sample_prefix}_mismatches_allowed.err",
+        expand("crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.err",
                 sample_prefix=SAMPLE_PREFIX),
-        expand("count_output/{sample_prefix}_counts.txt",
+        expand("crispr_screen_out/count_output/{sample_prefix}_counts.txt",
                 sample_prefix=SAMPLE_PREFIX),
-        expand("count_output/{sample_prefix}_bbpileup.log",
+        expand("crispr_screen_out/count_output/{sample_prefix}_bbpileup.log",
                 sample_prefix=SAMPLE_PREFIX),
-        expand("count_output/{sample_prefix}_bbpileup.err",
+        expand("crispr_screen_out/count_output/{sample_prefix}_bbpileup.err",
                 sample_prefix=SAMPLE_PREFIX)
         
 
@@ -45,11 +48,12 @@ rule all:
 
 ## STEP 0: running fastqc and multiqc
 ## update everything that should be a path with a forward slash
+## this step runs fine!
 rule run_fastqc:
     input:
         inDir = RAW_SEQ_IN
     output:
-        outDir = directory("fastqc_outputs")
+        outDir = directory("crispr_screen_out/fastqc_outputs/")
     conda:
         FASTQC_ENV
     params:
@@ -58,38 +62,37 @@ rule run_fastqc:
         """
         echo "running fastqc"
 
-        fastqc {input.inDir}*.fastq.gz -o {output.outDir} --threads {params.thread_n}
+        mkdir {output.outDir}
+
+        fastqc {input.inDir}/*.fastq.gz -o {output.outDir} --threads {params.thread_n}
         """
 
 
 rule run_multiqc:
     input:
-        inDir = "fastqc_outputs"
+        inDir = "crispr_screen_out/fastqc_outputs/"
     output:
-        fastq_report_out = "fastqc_crispr_screen.html"
+        fastq_report_out = "crispr_screen_out/multiqc_outputs/fastqc_crispr_screen.html"
     conda:
         MULTIQC_ENV
+    params:
+        multiqc_dir = "crispr_screen_out/multiqc_outputs/",
+        multiqc_filename = "fastqc_crispr_screen.html"
     shell:
         """
         echo "running multiqc"
         
-        multiqc -o {input.inDir} --filename {output.fastq_report_out} .
+        multiqc {input.inDir} -o {params.multiqc_dir} --filename {params.multiqc_filename} .
         """
 
 ## STEP 1: running cutadapt
 ## specify how many samples can be run at the same time - config spec. w default 
-## may need to use "wildcards" for this
-## come in pairs - R1 and R2 put them together as the input 
-## outputs 2 fastqs per sample
+## this step runs fine!
 rule run_cutadapt:
     input:
-        ## may want to mask the sample prefix wildcard
-        ## update, we don't need this anymore bc the reads are single end  
-        ##in_samples = expand("{{sample_prefix}}_{read}_001.fastq.gz", read=["R1", "R2"])
-        in_samples = expand("fastqc_outputs/{sample_prefix}_R1_001.fastq.gz",
-                             sample_prefix = SAMPLE_PREFIX)
+        in_samples = os.path.join(RAW_SEQ_IN, "{sample_prefix}_R1_001.fastq.gz")
     output:
-        out_samples = "cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz"
+        out_samples = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz"
     conda:
         CUTADAPT_ENV
     params:
@@ -104,26 +107,27 @@ rule run_cutadapt:
 
 
 ## STEP 2: running bowtie1
-## combines cutadapt paired files to one sample file 
+## this works!!
+## BUT none of the reads are aligning so idk what's going on 
 rule run_bowtie:
     input:
-        in_samples = "cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz",
-        bowtie_index = "path/to/human_crispr_sg_brunello"
+        in_samples = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz"
     output:
-        unaligned_out = "bowtie_unaligned/{sample_prefix}_mismatches_allowed_unaligned.sam",
-        aligned_out = "bowtie_aligned/{sample_prefix}_mismatches_allowed.sam"
+        unaligned_out = "crispr_screen_out/bowtie_unaligned/{sample_prefix}_mismatches_allowed_unaligned.sam",
+        aligned_out = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.sam"
     ## can specify log outputs here
     log:
-        log = "bowtie_aligned/{sample_prefix}_mismatches_allowed.log",
-        err = "bowtie_aligned/{sample_prefix}_mismatches_allowed.err"
+        log = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.log",
+        err = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.err"
     conda:
         BOWTIE_ENV
     params:
-        mismatches = 0
+        mismatches = 0,
+        bowtie_index = BOWTIE_INDEX
     shell:
         """
-        bowtie1 -p 4 \
-                {input.bowtie_index} {input.in_samples} \
+        bowtie -p 4 \
+                {params.bowtie_index} {input.in_samples} \
                 -S \
                 --no-unal \
                 --trim5 0 \
@@ -140,17 +144,16 @@ rule run_bowtie:
 ## STEP 3: counting guides in bbmap
 rule run_bbmap:
     input:
-        in_samples = "bowtie_aligned/{sample_prefix}_mismatches_allowed.sam"
+        in_samples = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.sam"
     output:
-        count_out = "count_output/{sample_prefix}_counts.txt"
+        count_out = "crispr_screen_out/count_output/{sample_prefix}_counts.txt"
     log:
-        log = "count_output/{sample_prefix}_bbpileup.log",
-        err = "count_output/{sample_prefix}_bbpileup.err"
+        log = "crispr_screen_out/count_output/{sample_prefix}_bbpileup.log",
+        err = "crispr_screen_out/count_output/{sample_prefix}_bbpileup.err"
     conda:
         BBMAP_ENV
     params:
-        ## im not sure if we'll need this since the conda install of bbmap doesn't require you to specify pileup.sh
-        bbmap_pileup = "bbmap/pileup.sh"
+        bbmap_pileup = "pileup.sh"
     shell:
      """
      {params.bbmap_pileup} in={input.in_samples} \
