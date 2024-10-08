@@ -33,13 +33,9 @@ rule all:
                sample_prefix=SAMPLE_PREFIX),
         expand("crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.log",
                 sample_prefix=SAMPLE_PREFIX),
-        expand("crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.err",
-                sample_prefix=SAMPLE_PREFIX),
         expand("crispr_screen_out/count_output/{sample_prefix}_counts.txt",
                 sample_prefix=SAMPLE_PREFIX),
         expand("crispr_screen_out/count_output/{sample_prefix}_bbpileup.log",
-                sample_prefix=SAMPLE_PREFIX),
-        expand("crispr_screen_out/count_output/{sample_prefix}_bbpileup.err",
                 sample_prefix=SAMPLE_PREFIX)
         
 
@@ -106,9 +102,7 @@ rule run_cutadapt:
         """
 
 
-## STEP 2: running bowtie1
-## this works!!
-## BUT none of the reads are aligning so idk what's going on 
+## STEP 2: running bowtie1 
 rule run_bowtie:
     input:
         in_samples = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz"
@@ -117,8 +111,7 @@ rule run_bowtie:
         aligned_out = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.sam"
     ## can specify log outputs here
     log:
-        log = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.log",
-        err = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.err"
+        log = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.log"
     conda:
         BOWTIE_ENV
     params:
@@ -127,7 +120,8 @@ rule run_bowtie:
     shell:
         """
         bowtie -p 4 \
-                {params.bowtie_index} {input.in_samples} \
+                -x {params.bowtie_index} \
+                -q {input.in_samples} \
                 -S \
                 --no-unal \
                 --trim5 0 \
@@ -136,20 +130,20 @@ rule run_bowtie:
                 --strata \
                 -m 1 \
                 --un {output.unaligned_out} \
-                -v {params.mismatches} > {output.aligned_out} \
-                1>{log.log} \
-                2>{log.err}
+                -v {params.mismatches} \
+                > {output.aligned_out} \
+                2>{log.log}
         """
 
 ## STEP 3: counting guides in bbmap
+## the log file is typically empty with everything in the err file - should we just have a log file?
 rule run_bbmap:
     input:
         in_samples = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.sam"
     output:
         count_out = "crispr_screen_out/count_output/{sample_prefix}_counts.txt"
     log:
-        log = "crispr_screen_out/count_output/{sample_prefix}_bbpileup.log",
-        err = "crispr_screen_out/count_output/{sample_prefix}_bbpileup.err"
+        log = "crispr_screen_out/count_output/{sample_prefix}_bbpileup.log"
     conda:
         BBMAP_ENV
     params:
@@ -158,8 +152,7 @@ rule run_bbmap:
      """
      {params.bbmap_pileup} in={input.in_samples} \
                            out={output.count_out} \
-                           1>{log.log} \
-                           2>{log.err}
+                           2>{log.log}
      """
 
 
