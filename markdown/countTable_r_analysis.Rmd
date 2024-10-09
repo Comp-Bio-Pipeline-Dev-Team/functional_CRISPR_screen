@@ -216,13 +216,13 @@ proc_count_corr_plot
 ```
 - so there's this handy function that'll actually make the plot for me so that's fun! 
 - its weird though because you need to record the plot and then replay it to save it 
+- have to save the plot as a .pdf in the acutal code chunk instead of below
 ```{r, fig.width=7, fig.height=7}
-count_corr_plot <- { 
-                    corrplot(count_corr_matrix,
-                             method = 'number',
-                             outline = TRUE)
-                    recordPlot()
-                    }
+pdf(file = '../crispr_screen_out/plots/sample_correlationMatrix.pdf')
+corrplot(count_corr_matrix,
+         method = 'number',
+         outline = TRUE)
+dev.off()
 ```
 
 
@@ -256,14 +256,10 @@ ggsave('../crispr_screen_out/plots/sample_PCA_plot.pdf',
 ggsave('../crispr_screen_out/plots/sample_totalCount_plot.pdf',
        plot = total_counts_plot,
        width = 9.5,
-       height = 4)
+       height = 5)
 ggsave('../crispr_screen_out/plots/sample_transCounts_plot.pdf',
        plot = transform_counts_plot,
        width = 9.5,
-       height = 4)
-ggsave('../crispr_screen_out/plots/sample_correlationMatrix.pdf',
-       plot = replayPlot(count_corr_plot),
-       width = 7,
-       height = 7)
+       height = 5)
 ```
 
