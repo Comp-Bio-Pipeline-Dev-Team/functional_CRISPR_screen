@@ -1,0 +1,269 @@
+---
+title: "count_file_wrangling"
+output: html_document
+date: "2024-10-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(broom)
+library(magrittr)
+library(edgeR)
+library(stats)
+library(corrplot)
+library(corrr)
+```
+
+**Functions**
+```{r}
+## reads in .txt file and adds a column with the sampleid so all table can be combined later 
+## might do this step with a for loop in python 
+add_sampleid <- function(filepath,
+                         wanted_sampleid){
+  ## reading in file
+  counts_table <- read_tsv(filepath) %>% 
+    mutate(sampleid = paste(wanted_sampleid))
+  return(counts_table)
+}
+
+## takes the combined counts table from long to wide format and normalizes it by cpm 
+normalize_table <- function(comb_table){
+  ## selected the Plus_reads column, idk if that was right
+  ## taking the tibble from long to wide format w the sampleids as the columns
+  comb_table_wide <- comb_table %>% 
+                        select(`#ID`, Plus_reads, sampleid) %>% 
+                        spread(sampleid, Plus_reads)
+  
+  ## converting the tibble to a dataframe so I can set the id column as the rownames 
+  comb_table_wide_df <- as.data.frame(comb_table_wide)
+  rownames(comb_table_wide_df) <- comb_table_wide_df$`#ID`
+  
+  ## getting rid of the id column since its now the rownames 
+  comb_table_wide_df <- subset(comb_table_wide_df,
+                                select = -`#ID`)
+  
+  ## cpm won't work if the data frame contains any categorical values 
+  norm_combTable_df <- edgeR::cpm(comb_table_wide_df)
+  norm_combTable_df <- as.data.frame(norm_combTable_df)
+  
+  ## creating a list of outputs
+  my_list <- list(NonNormTable = comb_table_wide_df,
+                  NormTable = norm_combTable_df)
+  return(my_list)
+}
+```
+
+**File paths**
+```{r}
+transE_high_s47_fp <- '../crispr_screen_out/count_output/transE-High_S47_L005_counts.txt'
+transE_low_s45_fp <- '../crispr_screen_out/count_output/transE-Low_S45_L005_counts.txt'
+transE_medium_s46_fp <- '../crispr_screen_out/count_output/transE-Medium_S46_L005_counts.txt'
+transE_pre_s48_fp <- '../crispr_screen_out/count_output/transE-Pre_S48_L005_counts.txt'
+```
+
+**Reading in count files**
+reads in .txt file and adds a sampleid column to each one before they're combined
+```{r}
+transE_high_s47_counts <- add_sampleid(filepath = transE_high_s47_fp,
+                                       wanted_sampleid = 'transE_high_s47')
+  
+transE_low_s45_counts <- add_sampleid(filepath = transE_low_s45_fp,
+                                      wanted_sampleid = 'transE_low_s45')
+  
+transE_medium_s46_counts <- add_sampleid(filepath = transE_medium_s46_fp,
+                                         wanted_sampleid = 'transE_medium_s46')
+
+transE_pre_s48_counts <- add_sampleid(filepath = transE_pre_s48_fp,
+                                      wanted_sampleid = 'transE_pre_s48')
+```
+## **CPM normalization**
+**Combining all the count tables and normalizing them**
+they're now in counts per million 
+```{r}
+comb_counts <- rbind(transE_pre_s48_counts,
+                     transE_low_s45_counts,
+                     transE_medium_s46_counts,
+                     transE_high_s47_counts)
+
+count_table_out <- normalize_table(comb_table = comb_counts)
+
+comb_counts_wide_df <- count_table_out$NonNormTable
+norm_combCounts_df <- count_table_out$NormTable
+```
+
+
+## **PCA analysis**
+**Calculating PCA**
+```{r}
+count_pca <- princomp(norm_combCounts_df)
+
+## pulling actual PCA values out
+count_pca_table <- count_pca$loadings[, 1:2] %>% 
+  as_tibble(rownames = 'sampleid')
+
+## pulling out variance explained for PC1 and PC2
+## calculating cumulative proportion of variance 
+pre_varExp <- summary(count_pca)
+pca_varExp <- cumsum(pre_varExp$sdev^2 / sum(pre_varExp$sdev^2))
+
+count_pca_table
+pca_varExp
+```
+
+**PCA plot**
+```{r, fig.width=8, fig.height=4}
+x_lab <- paste0('PC1', '-', as.character(round(pca_varExp[1], digits = 4) * 100), '%')
+y_lab <- paste0('PC2', '-', as.character(round(pca_varExp[2], digits = 4) * 100), '%')
+
+pca_plot <- count_pca_table %>% 
+              ggplot(aes(x = Comp.1, y = Comp.2)) +
+              geom_point(aes(fill = sampleid), pch = 21, size = 3, alpha = 0.6) +
+              theme_bw(base_size = 20) +
+              scale_fill_brewer(palette = 'Dark2',
+                                name = 'Sample',
+                                breaks = c('transE_pre_s48',
+                                           'transE_low_s45',
+                                           'transE_medium_s46',
+                                           'transE_high_s47')) +
+              labs(x = x_lab,
+                   y = y_lab,
+                   title = 'Principal Component Analysis')
+
+pca_plot
+```
+
+## **Total counts plot**
+**Calculating total sgRNA counts per sample**
+```{r}
+total_counts_table <- comb_counts %>% 
+  group_by(sampleid) %>% 
+  summarize(total_counts = sum(Plus_reads))
+
+total_counts_table
+```
+
+**Total counts actual plot**
+```{r, fig.width=9.5, fig.heigh=4}
+total_counts_plot <- total_counts_table %>% 
+  ggplot(aes(x = sampleid, y = total_counts)) +
+  geom_bar(aes(fill = sampleid), stat = 'identity', color = 'black', alpha = 0.6) +
+  theme_bw(base_size = 20) +
+  scale_fill_brewer(palette = 'Dark2',
+                    guide = 'none') +
+  scale_x_discrete(limits = c('transE_pre_s48',
+                              'transE_low_s45',
+                              'transE_medium_s46',
+                              'transE_high_s47')) +
+  labs(x = 'Sample',
+       y = 'Total Counts',
+       title = 'Total sgRNA Counts')
+
+total_counts_plot
+```
+
+## **Transformed sgRNA reads plot**
+**log2 transformed sgRNA reads plot**
+I think its log2 transformed?
+```{r, fig.width=9.5, fig.heigh=4}
+## log2 transformation
+transform_counts_table <- comb_counts %>% 
+  mutate(log2_counts = log2(Plus_reads))
+
+## plot 
+transform_counts_plot <- transform_counts_table %>% 
+  ggplot(aes(x = sampleid, y = log2_counts)) +
+  geom_violin(aes(fill = sampleid), color = 'black', alpha = 0.6) +
+  theme_bw(base_size = 20) +
+  scale_fill_brewer(palette = 'Dark2',
+                    guide = 'none') +
+  scale_x_discrete(limits = c('transE_pre_s48',
+                              'transE_low_s45',
+                              'transE_medium_s46',
+                              'transE_high_s47')) +
+  labs(x = 'Sample',
+       y = 'log2(sgRNA Counts)',
+       title = 'Transformed sgRNA Counts')
+
+transform_counts_plot
+```
+
+## **Correlation matrix by sample**
+**Calculating correlation matrix**
+```{r}
+count_corr_matrix <- cor(comb_counts_wide_df)
+
+proc_count_corr_matrix <- count_corr_matrix %>% 
+  as_tibble(rownames = 'group1') %>% 
+  gather(-group1, key = 'group2', value = 'corr_value')
+
+count_corr_matrix
+```
+
+**Correlation matrix plot by sample**
+```{r}
+proc_count_corr_plot <- proc_count_corr_matrix %>% 
+  ggplot(aes(x = group1, y = group2)) +
+  geom_tile(color = 'black', fill = 'white') +
+  theme_bw(base_size = 20) +
+  geom_text(aes(label = round(corr_value, digits = 2), color = corr_value))
+  
+
+proc_count_corr_plot
+```
+- so there's this handy function that'll actually make the plot for me so that's fun! 
+- its weird though because you need to record the plot and then replay it to save it 
+```{r, fig.width=7, fig.height=7}
+count_corr_plot <- { 
+                    corrplot(count_corr_matrix,
+                             method = 'number',
+                             outline = TRUE)
+                    recordPlot()
+                    }
+```
+
+
+## **Saving my outputs**
+**Files**
+```{r}
+## combined counts table in long format
+write_tsv(comb_counts,
+          '../crispr_screen_out/count_output/allSample_counts_long.tsv')
+
+## have to use write.table() to keep rownames in the .tsv files since write_tsv doesn't include them 
+## combined counts table in wide format
+write.table(comb_counts_wide_df,
+            '../crispr_screen_out/count_output/allSample_counts_wide.tsv',
+            sep = "\t",
+            row.names = TRUE)
+
+## normalized combined counts table in wide format
+write.table(norm_combCounts_df,
+            '../crispr_screen_out/count_output/norm-cpm_allSample_counts.tsv',
+            sep = "\t",
+            row.names = TRUE)
+```
+
+**Plots**
+```{r}
+ggsave('../crispr_screen_out/plots/sample_PCA_plot.pdf',
+       plot = pca_plot,
+       width = 8,
+       height = 4)
+ggsave('../crispr_screen_out/plots/sample_totalCount_plot.pdf',
+       plot = total_counts_plot,
+       width = 9.5,
+       height = 4)
+ggsave('../crispr_screen_out/plots/sample_transCounts_plot.pdf',
+       plot = transform_counts_plot,
+       width = 9.5,
+       height = 4)
+ggsave('../crispr_screen_out/plots/sample_correlationMatrix.pdf',
+       plot = replayPlot(count_corr_plot),
+       width = 7,
+       height = 7)
+```
+
