@@ -1,0 +1,21 @@
+name: r_env_crispr
+channels:
+    - bioconda
+    - conda-forge
+    - anaconda
+    - r
+dependencies:
+    - pip
+    - r-base=> 4.0
+    - r-essentials
+    - r-rstatix
+    - r-ggpubr
+    - r-cowplot
+    - r-ggh4x
+    - r-argparse
+    - r-ggforce
+    - r-corrplot
+    - r-corrr
+    - bioconductor-edger
+    - pip:
+        - snakemake
