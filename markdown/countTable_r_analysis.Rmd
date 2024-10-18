@@ -31,20 +31,32 @@ add_sampleid <- function(filepath,
 }
 
 ## takes the combined counts table from long to wide format and normalizes it by cpm 
-normalize_table <- function(comb_table){
-  ## selected the Plus_reads column, idk if that was right
+## we only need the plus read columns !!
+normalize_table <- function(comb_table,
+                            id_col){
+  
+  if (id_col == 'gene_id') {
+    comb_table <- comb_table %>% 
+      group_by(gene_id, sampleid) %>% 
+      summarise(reads_per_gene = sum(Plus_reads))
+    
+    reads_col <- 'reads_per_gene'
+  } else {
+    reads_col <- 'Plus_reads'
+  }
+  
+  ## selected the Plus_reads column
   ## taking the tibble from long to wide format w the sampleids as the columns
-  comb_table_wide <- comb_table %>% 
-                        select(`#ID`, Plus_reads, sampleid) %>% 
-                        spread(sampleid, Plus_reads)
+  comb_table_wide_df <- comb_table %>% 
+                          select(.data[[id_col]], .data[[reads_col]], sampleid) %>% 
+                          spread(sampleid, .data[[reads_col]]) %>% 
+                          remove_rownames() %>% 
+                          column_to_rownames(var = id_col)
   
-  ## converting the tibble to a dataframe so I can set the id column as the rownames 
-  comb_table_wide_df <- as.data.frame(comb_table_wide)
-  rownames(comb_table_wide_df) <- comb_table_wide_df$`#ID`
-  
-  ## getting rid of the id column since its now the rownames 
+  comb_table_wide_df["sum_cols"] <- rowSums(comb_table_wide_df)
   comb_table_wide_df <- subset(comb_table_wide_df,
-                                select = -`#ID`)
+                               sum_cols != 0,
+                               select = -sum_cols)
   
   ## cpm won't work if the data frame contains any categorical values 
   norm_combTable_df <- edgeR::cpm(comb_table_wide_df)
@@ -83,70 +95,150 @@ transE_pre_s48_counts <- add_sampleid(filepath = transE_pre_s48_fp,
 ## **CPM normalization**
 **Combining all the count tables and normalizing them**
 they're now in counts per million 
+- create another data frame where we collapse the reads per gene - put these through the same downstream analysis/plots 
+- the gene is the first part of the guide before the underscore in the #ID column 
+- number of counts by guide and number of counts by gene (do both for raw and then normalize them)
 ```{r}
 comb_counts <- rbind(transE_pre_s48_counts,
                      transE_low_s45_counts,
                      transE_medium_s46_counts,
                      transE_high_s47_counts)
 
-count_table_out <- normalize_table(comb_table = comb_counts)
+comb_counts <- comb_counts %>% 
+  rename(sgRNA_id = `#ID`) %>% 
+  select(sgRNA_id, Plus_reads, sampleid) %>% 
+  separate_wider_delim(cols = sgRNA_id,
+                       delim = "_",
+                       names = c("gene_id"),
+                       cols_remove = FALSE,
+                       too_many = 'drop')
 
-comb_counts_wide_df <- count_table_out$NonNormTable
-norm_combCounts_df <- count_table_out$NormTable
+comb_counts
 ```
 
+**Normalizing count tables**
+for sgRNA ids 
+```{r}
+sgCount_table_out <- normalize_table(comb_table = comb_counts,
+                                     id_col = 'sgRNA_id')
+
+sgRNA_combCounts_wide_df <- sgCount_table_out$NonNormTable
+sgRNAnorm_combCounts_df <- sgCount_table_out$NormTable
+```
+
+for individual genes
+```{r}
+geneCount_table_out <- normalize_table(comb_table = comb_counts,
+                                       id_col = 'gene_id')
+
+gene_combCounts_wide_df <- geneCount_table_out$NonNormTable
+geneNorm_combCounts_df <- geneCount_table_out$NormTable
+```
 
 ## **PCA analysis**
 **Calculating PCA**
+- need to make sure that data is scaled and centered automatically by pca calculation function 
+- need to transpose the normalized counts before they go into prcomp() function 
+
+for sgRNA ids
 ```{r}
-count_pca <- princomp(norm_combCounts_df)
+sgRNA_count_pca <- prcomp(t(sgRNAnorm_combCounts_df),
+                    center = TRUE,
+                    scale. = TRUE)
 
 ## pulling actual PCA values out
-count_pca_table <- count_pca$loadings[, 1:2] %>% 
+sgRNA_count_pcaTable <- sgRNA_count_pca$x %>% 
   as_tibble(rownames = 'sampleid')
 
 ## pulling out variance explained for PC1 and PC2
-## calculating cumulative proportion of variance 
-pre_varExp <- summary(count_pca)
-pca_varExp <- cumsum(pre_varExp$sdev^2 / sum(pre_varExp$sdev^2))
-
-count_pca_table
-pca_varExp
+## want to pull out the proportion of variance 
+pre_sgRNA_varExp <- summary(sgRNA_count_pca)
+pca_sgRNA_varExp <- pre_sgRNA_varExp$importance[2,]
 ```
+
+for individual genes
+```{r}
+gene_count_pca <- prcomp(t(geneNorm_combCounts_df),
+                    center = TRUE,
+                    scale. = TRUE)
+
+## pulling actual PCA values out
+gene_count_pcaTable <- gene_count_pca$x %>% 
+  as_tibble(rownames = 'sampleid')
+
+## pulling out variance explained for PC1 and PC2
+## want to pull out the proportion of variance 
+pre_gene_varExp <- summary(gene_count_pca)
+pca_gene_varExp <- pre_gene_varExp$importance[2,]
+```
+
 
 **PCA plot**
+- need to have biological category parameter for the pca plot eventually (want to see the biological replicates cluster together) - need to be colored by this (biological_group)
+- may save these as an .rdat object as well (for us) - put the raw and normalized (filtered) counts tables, pca obj
+
+for sgRNA ids
 ```{r, fig.width=8, fig.height=4}
-x_lab <- paste0('PC1', '-', as.character(round(pca_varExp[1], digits = 4) * 100), '%')
-y_lab <- paste0('PC2', '-', as.character(round(pca_varExp[2], digits = 4) * 100), '%')
+sgRNA_x_lab <- paste0('PC1', '(', as.character(round(pca_sgRNA_varExp[1], digits = 4) * 100), '%)')
+sgRNA_y_lab <- paste0('PC2', '(', as.character(round(pca_sgRNA_varExp[2], digits = 4) * 100), '%)')
 
-pca_plot <- count_pca_table %>% 
-              ggplot(aes(x = Comp.1, y = Comp.2)) +
-              geom_point(aes(fill = sampleid), pch = 21, size = 3, alpha = 0.6) +
-              theme_bw(base_size = 20) +
-              scale_fill_brewer(palette = 'Dark2',
-                                name = 'Sample',
-                                breaks = c('transE_pre_s48',
-                                           'transE_low_s45',
-                                           'transE_medium_s46',
-                                           'transE_high_s47')) +
-              labs(x = x_lab,
-                   y = y_lab,
-                   title = 'Principal Component Analysis')
+sgRNA_pca_plot <- sgRNA_count_pcaTable %>% 
+                    ggplot(aes(x = PC1, y = PC2)) +
+                    geom_point(aes(fill = sampleid), pch = 21, size = 3, alpha = 0.6) +
+                    theme_bw(base_size = 20) +
+                    scale_fill_brewer(palette = 'Dark2',
+                                      name = 'Sample',
+                                      breaks = c('transE_pre_s48',
+                                                 'transE_low_s45',
+                                                 'transE_medium_s46',
+                                                 'transE_high_s47')) +
+                    labs(x = sgRNA_x_lab,
+                         y = sgRNA_y_lab,
+                         title = 'sgRNA Count PCA')
 
-pca_plot
+sgRNA_pca_plot
 ```
 
+for individual genes
+```{r, fig.width=8, fig.height=4}
+gene_x_lab <- paste0('PC1', '(', as.character(round(pca_gene_varExp[1], digits = 4) * 100), '%)')
+gene_y_lab <- paste0('PC2', '(', as.character(round(pca_gene_varExp[2], digits = 4) * 100), '%)')
+
+gene_pca_plot <- gene_count_pcaTable %>% 
+                    ggplot(aes(x = PC1, y = PC2)) +
+                    geom_point(aes(fill = sampleid), pch = 21, size = 3, alpha = 0.6) +
+                    theme_bw(base_size = 20) +
+                    scale_fill_brewer(palette = 'Dark2',
+                                      name = 'Sample',
+                                      breaks = c('transE_pre_s48',
+                                                 'transE_low_s45',
+                                                 'transE_medium_s46',
+                                                 'transE_high_s47')) +
+                    labs(x = gene_x_lab,
+                         y = gene_y_lab,
+                         title = 'Gene Count PCA')
+
+gene_pca_plot
+```
+
+
 ## **Total counts plot**
-**Calculating total sgRNA counts per sample**
+**Calculating total sgRNA/gene counts per sample**
+don't need to do individual ones for sgRNA and gene bc they add up to the same thing!
 ```{r}
 total_counts_table <- comb_counts %>% 
+  select(sgRNA_id, sampleid, Plus_reads) %>% 
   group_by(sampleid) %>% 
   summarize(total_counts = sum(Plus_reads))
 
 total_counts_table
 ```
 
+
 **Total counts actual plot**
+- colored by biological group
+- make a copy of the fastqs as fake data 
+- create fake metadata file to set up r scripts 
 ```{r, fig.width=9.5, fig.heigh=4}
 total_counts_plot <- total_counts_table %>% 
   ggplot(aes(x = sampleid, y = total_counts)) +
@@ -160,7 +252,7 @@ total_counts_plot <- total_counts_table %>%
                               'transE_high_s47')) +
   labs(x = 'Sample',
        y = 'Total Counts',
-       title = 'Total sgRNA Counts')
+       title = 'Total sgRNA/Gene Counts per Sample')
 
 total_counts_plot
 ```
@@ -176,6 +268,7 @@ transform_counts_table <- comb_counts %>%
 ## plot 
 transform_counts_plot <- transform_counts_table %>% 
   ggplot(aes(x = sampleid, y = log2_counts)) +
+  geom_boxplot(aes(group = sampleid), width = 0.5, color = 'black') +
   geom_violin(aes(fill = sampleid), color = 'black', alpha = 0.6) +
   theme_bw(base_size = 20) +
   scale_fill_brewer(palette = 'Dark2',
@@ -185,44 +278,119 @@ transform_counts_plot <- transform_counts_table %>%
                               'transE_medium_s46',
                               'transE_high_s47')) +
   labs(x = 'Sample',
-       y = 'log2(sgRNA Counts)',
-       title = 'Transformed sgRNA Counts')
+       y = 'log2(Counts)',
+       title = 'Transformed sgRNA/Gene Counts')
 
 transform_counts_plot
 ```
 
 ## **Correlation matrix by sample**
 **Calculating correlation matrix**
+- currently defaulting to pearson correlation, run with both spearman and pearson correlation calculations for now!!
+- pearson doesn't rank samples, makes assumption of continuous variables
+- spearman ranks things (guides) first and compares correlation of the ranking to that of all the other samples (biological replicates should have similar ranking) - deals w ranking rather than actual normalized values 
+- use the spearman correlation!!!
 ```{r}
-count_corr_matrix <- cor(comb_counts_wide_df)
+## sgRNA
+sgRNA_corr_matrix <- cor(sgRNA_combCounts_wide_df,
+                         method = "spearman")
 
-proc_count_corr_matrix <- count_corr_matrix %>% 
+proc_sgRNA_corr_matrix <- sgRNA_corr_matrix %>% 
   as_tibble(rownames = 'group1') %>% 
   gather(-group1, key = 'group2', value = 'corr_value')
 
-count_corr_matrix
+sgRNA_corr_matrix
+```
+for individual genes
+```{r}
+## genes
+gene_corr_matrix <- cor(gene_combCounts_wide_df,
+                        method = "spearman")
+
+proc_gene_corr_matrix <- gene_corr_matrix %>% 
+  as_tibble(rownames = 'group1') %>% 
+  gather(-group1, key = 'group2', value = 'corr_value')
+
+gene_corr_matrix
 ```
 
 **Correlation matrix plot by sample**
-```{r}
-proc_count_corr_plot <- proc_count_corr_matrix %>% 
+- i cannot figure out how to make the tick marks go to the labels on the legend so i'm just going to go cry about it 
+- if you change the dimensions, you HAVE to change the height of the legend bar (which is really annoying)
+```{r, fig.width=10, fig.height=8}
+proc_sgRNA_corr_plot <- proc_sgRNA_corr_matrix %>% 
   ggplot(aes(x = group1, y = group2)) +
   geom_tile(color = 'black', fill = 'white') +
   theme_bw(base_size = 20) +
-  geom_text(aes(label = round(corr_value, digits = 2), color = corr_value))
+  geom_text(aes(label = round(corr_value, digits = 2), color = corr_value), size = 5, fontface = 'bold') +
+  scale_color_gradientn(colors = hcl.colors(200, 'RdBu'),
+                        limits = c(-1, 1),
+                        breaks = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1),
+                        labels = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1)) +
+  guides(color = guide_colorbar(barwidth = 1,
+                                barheight = 26.45)) +
+  scale_x_discrete(position = 'top') +
+  theme(axis.text = element_text(color = 'red'),
+        axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        axis.text.x = element_text(angle = 90, hjust = 0),
+        legend.frame = element_rect(color = 'black', linetype = 'solid', linewidth = 0.5),
+        legend.ticks = element_blank(),
+        legend.text = element_text(size = 12),
+        # legend.ticks = element_line(color = 'black', linetype = 'solid', linewidth = 0.5),
+        # legend.ticks.length = unit(-0.15, 'cm'),
+        legend.title = element_blank(),
+        legend.box.spacing = unit(-0.4, 'cm'))
   
 
-proc_count_corr_plot
+proc_sgRNA_corr_plot
 ```
+
+for individual genes
+```{r, fig.width=10, fig.height=8}
+proc_gene_corr_plot <- proc_gene_corr_matrix %>% 
+  ggplot(aes(x = group1, y = group2)) +
+  geom_tile(color = 'black', fill = 'white') +
+  theme_bw(base_size = 20) +
+  geom_text(aes(label = round(corr_value, digits = 2), color = corr_value), size = 5, fontface = 'bold') +
+  scale_color_gradientn(colors = hcl.colors(200, 'RdBu'),
+                        limits = c(-1, 1),
+                        breaks = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1),
+                        labels = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1)) +
+  guides(color = guide_colorbar(barwidth = 1,
+                                barheight = 26.45)) +
+  scale_x_discrete(position = 'top') +
+  theme(axis.text = element_text(color = 'red'),
+        axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        axis.text.x = element_text(angle = 90, hjust = 0),
+        legend.frame = element_rect(color = 'black', linetype = 'solid', linewidth = 0.5),
+        legend.ticks = element_blank(),
+        legend.text = element_text(size = 12),
+        # legend.ticks = element_line(color = 'black', linetype = 'solid', linewidth = 0.5),
+        # legend.ticks.length = unit(-0.15, 'cm'),
+        legend.title = element_blank(),
+        legend.box.spacing = unit(-0.4, 'cm'))
+  
+
+proc_gene_corr_plot
+```
+
+
 - so there's this handy function that'll actually make the plot for me so that's fun! 
-- its weird though because you need to record the plot and then replay it to save it 
 - have to save the plot as a .pdf in the acutal code chunk instead of below
 ```{r, fig.width=7, fig.height=7}
-pdf(file = '../crispr_screen_out/plots/sample_correlationMatrix.pdf')
+##pdf(file = '../crispr_screen_out/plots/sample_correlationMatrix.pdf')
 corrplot(count_corr_matrix,
          method = 'number',
          outline = TRUE)
-dev.off()
+##dev.off()
 ```
 
 
@@ -233,24 +401,42 @@ dev.off()
 write_tsv(comb_counts,
           '../crispr_screen_out/count_output/allSample_counts_long.tsv')
 
+## sgRNA ids
 ## have to use write.table() to keep rownames in the .tsv files since write_tsv doesn't include them 
 ## combined counts table in wide format
-write.table(comb_counts_wide_df,
-            '../crispr_screen_out/count_output/allSample_counts_wide.tsv',
+write.table(sgRNA_combCounts_wide_df,
+            '../crispr_screen_out/count_output/allSample_sgRNAcounts_wide.tsv',
             sep = "\t",
             row.names = TRUE)
 
 ## normalized combined counts table in wide format
-write.table(norm_combCounts_df,
-            '../crispr_screen_out/count_output/norm-cpm_allSample_counts.tsv',
+write.table(sgRNAnorm_combCounts_df,
+            '../crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv',
+            sep = "\t",
+            row.names = TRUE)
+
+## gene ids
+## combined counts table in wide format
+write.table(gene_combCounts_wide_df,
+            '../crispr_screen_out/count_output/allSample_geneCounts_wide.tsv',
+            sep = "\t",
+            row.names = TRUE)
+
+## normalized combined counts table in wide format
+write.table(geneNorm_combCounts_df,
+            '../crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv',
             sep = "\t",
             row.names = TRUE)
 ```
 
 **Plots**
 ```{r}
-ggsave('../crispr_screen_out/plots/sample_PCA_plot.pdf',
-       plot = pca_plot,
+ggsave('../crispr_screen_out/plots/sgRNACount_PCA_plot.pdf',
+       plot = sgRNA_pca_plot,
+       width = 8,
+       height = 4)
+ggsave('../crispr_screen_out/plots/geneCount_PCA_plot.pdf',
+       plot = gene_pca_plot,
        width = 8,
        height = 4)
 ggsave('../crispr_screen_out/plots/sample_totalCount_plot.pdf',
@@ -261,5 +447,13 @@ ggsave('../crispr_screen_out/plots/sample_transCounts_plot.pdf',
        plot = transform_counts_plot,
        width = 9.5,
        height = 5)
+ggsave('../crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf',
+       plot = proc_sgRNA_corr_plot,
+       width = 10,
+       height = 8)
+ggsave('../crispr_screen_out/plots/geneCount_correlationMatrix.pdf',
+       plot = proc_gene_corr_plot,
+       width = 10,
+       height = 8)
 ```
 
