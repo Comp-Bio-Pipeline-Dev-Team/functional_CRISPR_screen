@@ -67,6 +67,163 @@ normalize_table <- function(comb_table,
                   NormTable = norm_combTable_df)
   return(my_list)
 }
+
+## takes normalized counts table and conducts a pca analysis
+## outputs the pca table and plot
+run_pca <- function(norm_df,
+                    sample_col,
+                    fill_by_col,
+                    point_size,
+                    point_alpha,
+                    brewer_palette,
+                    legend_title,
+                    plot_title){
+  ## running principal component analysis 
+  count_pca_results <- prcomp(t(norm_df),
+                              center = TRUE,
+                              scale. = TRUE)
+
+  ## pulling actual PCA values out of the object
+  count_pca_table <- count_pca_results$x %>% 
+    as_tibble(rownames = sample_col)
+  
+  ## pulling out variance explained for PC1 and PC2
+  ## want to pull out the proportion of variance 
+  pre_varExp <- summary(count_pca_results)
+  pca_varExp <- pre_varExp$importance[2,]
+  
+  x_lab <- paste0('PC1', '(', as.character(round(pca_varExp[1], digits = 4) * 100), '%)')
+  y_lab <- paste0('PC2', '(', as.character(round(pca_varExp[2], digits = 4) * 100), '%)')
+  
+  ## building actual PCA plot using above data
+  pca_plot <- count_pca_table %>% 
+    ggplot(aes(x = PC1, y = PC2)) +
+    geom_point(aes(fill = .data[[fill_by_col]]), 
+               pch = 21, 
+               size = point_size, 
+               alpha = point_alpha) +
+    theme_bw(base_size = 20) +
+    scale_fill_brewer(palette = brewer_palette,
+                      name = legend_title) +
+    labs(x = x_lab,
+         y = y_lab,
+         title = plot_title)
+  ## creating list of outputs 
+  my_list <- list(PCATable = count_pca_table,
+                  PCAPlot = pca_plot)
+  return(my_list)
+}
+
+## calculates the total amount of sgRNA/gene counts per sample and creates a plot
+## idk if this will be by biological group instead of sample in the future...
+run_total_counts <- function(comb_table,
+                             sum_col,
+                             bar_alpha,
+                             brewer_palette,
+                             x_label,
+                             y_label,
+                             plot_title){
+  ## calculating total counts per sample
+  total_counts_table <- comb_table %>% 
+    select(.data[[sum_col]], Plus_reads) %>% 
+    group_by(.data[[sum_col]]) %>% 
+    summarize(total_counts = sum(Plus_reads))
+  
+  ## building total counts plot
+  total_counts_plot <- total_counts_table %>% 
+    ggplot(aes(x = .data[[sum_col]], y = total_counts)) +
+    geom_bar(aes(fill = .data[[sum_col]]), 
+             stat = 'identity', 
+             color = 'black', 
+             alpha = bar_alpha) +
+    theme_bw(base_size = 20) +
+    scale_fill_brewer(palette = brewer_palette,
+                      guide = 'none') +
+    labs(x = x_label,
+         y = y_label,
+         title = plot_title)
+  ## creating a list of outputs
+  my_list <- list(TotalCountTable = total_counts_table,
+                  TotalCountPlot = total_counts_plot)
+  return(my_list)
+}
+
+## transforms all counts in the Plus_reads column by log2 and builds a plot
+run_transform_counts <- function(comb_table,
+                                 x_axis_col,
+                                 bar_alpha,
+                                 brewer_palette,
+                                 x_label,
+                                 y_label,
+                                 plot_title){
+  ## log2 transformation
+  transform_count_table <- comb_table %>% 
+    mutate(log2_counts = log2(Plus_reads))
+  
+  ## plot 
+  transform_count_plot <- transform_count_table %>% 
+    ggplot(aes(x = .data[[x_axis_col]], y = log2_counts)) +
+    geom_boxplot(aes(group = .data[[x_axis_col]]), width = 0.5, color = 'black') +
+    geom_violin(aes(fill = .data[[x_axis_col]]), color = 'black', alpha = bar_alpha) +
+    theme_bw(base_size = 20) +
+    scale_fill_brewer(palette = brewer_palette,
+                      guide = 'none') +
+    labs(x = x_label,
+         y = y_label,
+         title = plot_title)
+  ## creating list of outputs
+  my_list <- list(TransformCountTable = transform_count_table,
+                  TransformCountPlot = transform_count_plot)
+  return(my_list)
+}
+
+## runs correlation analysis on non-normalized counts data and creates a heat map of results
+run_correlation <- function(wide_count_df,
+                            corr_method,
+                            text_size,
+                            legend_barheight,
+                            legend_text_size){
+  ## running correlation analysis
+  corr_matrix <- cor(wide_count_df,
+                     method = corr_method)
+
+  proc_corr_matrix <- corr_matrix %>% 
+    as_tibble(rownames = 'group1') %>% 
+    gather(-group1, key = 'group2', value = 'corr_value')
+  
+  ## creating plot 
+  corr_plot <- proc_corr_matrix %>% 
+    ggplot(aes(x = group1, y = group2)) +
+    geom_tile(color = 'black', fill = 'white') +
+    theme_bw(base_size = 20) +
+    geom_text(aes(label = round(corr_value, digits = 2), color = corr_value), 
+              size = text_size, 
+              fontface = 'bold') +
+    scale_color_gradientn(colors = hcl.colors(200, 'RdBu'),
+                          limits = c(-1, 1),
+                          breaks = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1),
+                          labels = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1)) +
+    guides(color = guide_colorbar(barwidth = 1,
+                                  barheight = legend_barheight)) +
+    scale_x_discrete(position = 'top') +
+    theme(axis.text = element_text(color = 'red'),
+          axis.ticks = element_blank(),
+          axis.title = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(),
+          axis.text.x = element_text(angle = 90, hjust = 0),
+          legend.frame = element_rect(color = 'black', linetype = 'solid', linewidth = 0.5),
+          legend.ticks = element_blank(),
+          legend.text = element_text(size = legend_text_size),
+          legend.title = element_blank(),
+          legend.box.spacing = unit(-0.4, 'cm'))
+  
+  ## creating list of outputs
+  my_list <- list(CorrMatrix = corr_matrix,
+                  CorrPlot = corr_plot)
+  return(my_list)
+}
 ```
 
 **File paths**
@@ -140,119 +297,61 @@ geneNorm_combCounts_df <- geneCount_table_out$NormTable
 - need to make sure that data is scaled and centered automatically by pca calculation function 
 - need to transpose the normalized counts before they go into prcomp() function 
 
-for sgRNA ids
-```{r}
-sgRNA_count_pca <- prcomp(t(sgRNAnorm_combCounts_df),
-                    center = TRUE,
-                    scale. = TRUE)
-
-## pulling actual PCA values out
-sgRNA_count_pcaTable <- sgRNA_count_pca$x %>% 
-  as_tibble(rownames = 'sampleid')
-
-## pulling out variance explained for PC1 and PC2
-## want to pull out the proportion of variance 
-pre_sgRNA_varExp <- summary(sgRNA_count_pca)
-pca_sgRNA_varExp <- pre_sgRNA_varExp$importance[2,]
-```
-
-for individual genes
-```{r}
-gene_count_pca <- prcomp(t(geneNorm_combCounts_df),
-                    center = TRUE,
-                    scale. = TRUE)
-
-## pulling actual PCA values out
-gene_count_pcaTable <- gene_count_pca$x %>% 
-  as_tibble(rownames = 'sampleid')
-
-## pulling out variance explained for PC1 and PC2
-## want to pull out the proportion of variance 
-pre_gene_varExp <- summary(gene_count_pca)
-pca_gene_varExp <- pre_gene_varExp$importance[2,]
-```
-
-
 **PCA plot**
 - need to have biological category parameter for the pca plot eventually (want to see the biological replicates cluster together) - need to be colored by this (biological_group)
 - may save these as an .rdat object as well (for us) - put the raw and normalized (filtered) counts tables, pca obj
 
 for sgRNA ids
 ```{r, fig.width=8, fig.height=4}
-sgRNA_x_lab <- paste0('PC1', '(', as.character(round(pca_sgRNA_varExp[1], digits = 4) * 100), '%)')
-sgRNA_y_lab <- paste0('PC2', '(', as.character(round(pca_sgRNA_varExp[2], digits = 4) * 100), '%)')
+sgRNA_pca_res <- run_pca(norm_df = sgRNAnorm_combCounts_df,
+                         sample_col = 'sampleid',
+                         fill_by_col = 'sampleid',
+                         point_size = 3,
+                         point_alpha = 0.6,
+                         brewer_palette = 'Dark2',
+                         legend_title = 'Sample',
+                         plot_title = 'sgRNA Count PCA')
 
-sgRNA_pca_plot <- sgRNA_count_pcaTable %>% 
-                    ggplot(aes(x = PC1, y = PC2)) +
-                    geom_point(aes(fill = sampleid), pch = 21, size = 3, alpha = 0.6) +
-                    theme_bw(base_size = 20) +
-                    scale_fill_brewer(palette = 'Dark2',
-                                      name = 'Sample',
-                                      breaks = c('transE_pre_s48',
-                                                 'transE_low_s45',
-                                                 'transE_medium_s46',
-                                                 'transE_high_s47')) +
-                    labs(x = sgRNA_x_lab,
-                         y = sgRNA_y_lab,
-                         title = 'sgRNA Count PCA')
+sgRNA_count_pcaTable <- sgRNA_pca_res$PCATable
+sgRNA_pca_plot <- sgRNA_pca_res$PCAPlot
 
 sgRNA_pca_plot
 ```
 
 for individual genes
 ```{r, fig.width=8, fig.height=4}
-gene_x_lab <- paste0('PC1', '(', as.character(round(pca_gene_varExp[1], digits = 4) * 100), '%)')
-gene_y_lab <- paste0('PC2', '(', as.character(round(pca_gene_varExp[2], digits = 4) * 100), '%)')
+gene_pca_res <- run_pca(norm_df = geneNorm_combCounts_df,
+                        sample_col = 'sampleid',
+                        fill_by_col = 'sampleid',
+                        point_size = 3,
+                        point_alpha = 0.6,
+                        brewer_palette = 'Dark2',
+                        legend_title = 'Sample',
+                        plot_title = 'Gene Count PCA')
 
-gene_pca_plot <- gene_count_pcaTable %>% 
-                    ggplot(aes(x = PC1, y = PC2)) +
-                    geom_point(aes(fill = sampleid), pch = 21, size = 3, alpha = 0.6) +
-                    theme_bw(base_size = 20) +
-                    scale_fill_brewer(palette = 'Dark2',
-                                      name = 'Sample',
-                                      breaks = c('transE_pre_s48',
-                                                 'transE_low_s45',
-                                                 'transE_medium_s46',
-                                                 'transE_high_s47')) +
-                    labs(x = gene_x_lab,
-                         y = gene_y_lab,
-                         title = 'Gene Count PCA')
+gene_count_pcaTable <- gene_pca_res$PCATable
+gene_pca_plot <- gene_pca_res$PCAPlot
 
 gene_pca_plot
 ```
 
-
 ## **Total counts plot**
 **Calculating total sgRNA/gene counts per sample**
 don't need to do individual ones for sgRNA and gene bc they add up to the same thing!
-```{r}
-total_counts_table <- comb_counts %>% 
-  select(sgRNA_id, sampleid, Plus_reads) %>% 
-  group_by(sampleid) %>% 
-  summarize(total_counts = sum(Plus_reads))
-
-total_counts_table
-```
-
-
-**Total counts actual plot**
 - colored by biological group
 - make a copy of the fastqs as fake data 
 - create fake metadata file to set up r scripts 
-```{r, fig.width=9.5, fig.heigh=4}
-total_counts_plot <- total_counts_table %>% 
-  ggplot(aes(x = sampleid, y = total_counts)) +
-  geom_bar(aes(fill = sampleid), stat = 'identity', color = 'black', alpha = 0.6) +
-  theme_bw(base_size = 20) +
-  scale_fill_brewer(palette = 'Dark2',
-                    guide = 'none') +
-  scale_x_discrete(limits = c('transE_pre_s48',
-                              'transE_low_s45',
-                              'transE_medium_s46',
-                              'transE_high_s47')) +
-  labs(x = 'Sample',
-       y = 'Total Counts',
-       title = 'Total sgRNA/Gene Counts per Sample')
+```{r, fig.width=9.5, fig.height=5}
+total_counts_res <- run_total_counts(comb_table = comb_counts,
+                                     sum_col = 'sampleid',
+                                     bar_alpha = 0.6,
+                                     brewer_palette = 'Dark2',
+                                     x_label = 'Sample',
+                                     y_label = 'Total Counts',
+                                     plot_title = 'Total sgRNA/Gene Counts per Sample')
+
+total_counts_table <- total_counts_res$TotalCountTable
+total_counts_plot <- total_counts_res$TotalCountPlot
 
 total_counts_plot
 ```
@@ -260,26 +359,17 @@ total_counts_plot
 ## **Transformed sgRNA reads plot**
 **log2 transformed sgRNA reads plot**
 I think its log2 transformed?
-```{r, fig.width=9.5, fig.heigh=4}
-## log2 transformation
-transform_counts_table <- comb_counts %>% 
-  mutate(log2_counts = log2(Plus_reads))
+```{r, fig.width=9.5, fig.height=6}
+transform_count_res <- run_transform_counts(comb_table = comb_counts,
+                                            x_axis_col = 'sampleid',
+                                            bar_alpha = 0.6,
+                                            brewer_palette = 'Dark2',
+                                            x_label = 'Sample',
+                                            y_label = 'log2(Counts)',
+                                            plot_title = 'Transformed sgRNA/Gene Counts')
 
-## plot 
-transform_counts_plot <- transform_counts_table %>% 
-  ggplot(aes(x = sampleid, y = log2_counts)) +
-  geom_boxplot(aes(group = sampleid), width = 0.5, color = 'black') +
-  geom_violin(aes(fill = sampleid), color = 'black', alpha = 0.6) +
-  theme_bw(base_size = 20) +
-  scale_fill_brewer(palette = 'Dark2',
-                    guide = 'none') +
-  scale_x_discrete(limits = c('transE_pre_s48',
-                              'transE_low_s45',
-                              'transE_medium_s46',
-                              'transE_high_s47')) +
-  labs(x = 'Sample',
-       y = 'log2(Counts)',
-       title = 'Transformed sgRNA/Gene Counts')
+transform_counts_table <- transform_count_res$TransformCountTable
+transform_counts_plot <- transform_count_res$TransformCountPlot
 
 transform_counts_plot
 ```
@@ -290,99 +380,42 @@ transform_counts_plot
 - pearson doesn't rank samples, makes assumption of continuous variables
 - spearman ranks things (guides) first and compares correlation of the ranking to that of all the other samples (biological replicates should have similar ranking) - deals w ranking rather than actual normalized values 
 - use the spearman correlation!!!
-```{r}
-## sgRNA
-sgRNA_corr_matrix <- cor(sgRNA_combCounts_wide_df,
-                         method = "spearman")
-
-proc_sgRNA_corr_matrix <- sgRNA_corr_matrix %>% 
-  as_tibble(rownames = 'group1') %>% 
-  gather(-group1, key = 'group2', value = 'corr_value')
-
-sgRNA_corr_matrix
-```
-for individual genes
-```{r}
-## genes
-gene_corr_matrix <- cor(gene_combCounts_wide_df,
-                        method = "spearman")
-
-proc_gene_corr_matrix <- gene_corr_matrix %>% 
-  as_tibble(rownames = 'group1') %>% 
-  gather(-group1, key = 'group2', value = 'corr_value')
-
-gene_corr_matrix
-```
 
 **Correlation matrix plot by sample**
 - i cannot figure out how to make the tick marks go to the labels on the legend so i'm just going to go cry about it 
 - if you change the dimensions, you HAVE to change the height of the legend bar (which is really annoying)
-```{r, fig.width=10, fig.height=8}
-proc_sgRNA_corr_plot <- proc_sgRNA_corr_matrix %>% 
-  ggplot(aes(x = group1, y = group2)) +
-  geom_tile(color = 'black', fill = 'white') +
-  theme_bw(base_size = 20) +
-  geom_text(aes(label = round(corr_value, digits = 2), color = corr_value), size = 5, fontface = 'bold') +
-  scale_color_gradientn(colors = hcl.colors(200, 'RdBu'),
-                        limits = c(-1, 1),
-                        breaks = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1),
-                        labels = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1)) +
-  guides(color = guide_colorbar(barwidth = 1,
-                                barheight = 26.45)) +
-  scale_x_discrete(position = 'top') +
-  theme(axis.text = element_text(color = 'red'),
-        axis.ticks = element_blank(),
-        axis.title = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        axis.text.x = element_text(angle = 90, hjust = 0),
-        legend.frame = element_rect(color = 'black', linetype = 'solid', linewidth = 0.5),
-        legend.ticks = element_blank(),
-        legend.text = element_text(size = 12),
-        # legend.ticks = element_line(color = 'black', linetype = 'solid', linewidth = 0.5),
-        # legend.ticks.length = unit(-0.15, 'cm'),
-        legend.title = element_blank(),
-        legend.box.spacing = unit(-0.4, 'cm'))
-  
 
-proc_sgRNA_corr_plot
+
+for sgRNA ids
+```{r, fig.width=10, fig.height=8}
+sgRNA_corr_res <- run_correlation(wide_count_df = sgRNA_combCounts_wide_df,
+                                  corr_method = 'spearman',
+                                  text_size = 5,
+                                  legend_barheight = 26.45,
+                                  legend_text_size = 12)
+
+sgRNA_corr_matrix <- sgRNA_corr_res$CorrMatrix
+sgRNA_corr_plot <- sgRNA_corr_res$CorrPlot
+
+sgRNA_corr_plot
 ```
 
 for individual genes
 ```{r, fig.width=10, fig.height=8}
-proc_gene_corr_plot <- proc_gene_corr_matrix %>% 
-  ggplot(aes(x = group1, y = group2)) +
-  geom_tile(color = 'black', fill = 'white') +
-  theme_bw(base_size = 20) +
-  geom_text(aes(label = round(corr_value, digits = 2), color = corr_value), size = 5, fontface = 'bold') +
-  scale_color_gradientn(colors = hcl.colors(200, 'RdBu'),
-                        limits = c(-1, 1),
-                        breaks = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1),
-                        labels = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1)) +
-  guides(color = guide_colorbar(barwidth = 1,
-                                barheight = 26.45)) +
-  scale_x_discrete(position = 'top') +
-  theme(axis.text = element_text(color = 'red'),
-        axis.ticks = element_blank(),
-        axis.title = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        axis.text.x = element_text(angle = 90, hjust = 0),
-        legend.frame = element_rect(color = 'black', linetype = 'solid', linewidth = 0.5),
-        legend.ticks = element_blank(),
-        legend.text = element_text(size = 12),
-        # legend.ticks = element_line(color = 'black', linetype = 'solid', linewidth = 0.5),
-        # legend.ticks.length = unit(-0.15, 'cm'),
-        legend.title = element_blank(),
-        legend.box.spacing = unit(-0.4, 'cm'))
-  
+gene_corr_res <- run_correlation(wide_count_df = gene_combCounts_wide_df,
+                                 corr_method = 'spearman',
+                                 text_size = 5,
+                                 legend_barheight = 26.45,
+                                 legend_text_size = 12)
 
-proc_gene_corr_plot
+gene_corr_matrix <- gene_corr_res$CorrMatrix
+gene_corr_plot <- gene_corr_res$CorrPlot
+
+gene_corr_plot
 ```
 
 
+**Correlation plot that i am aspiring to**
 - so there's this handy function that'll actually make the plot for me so that's fun! 
 - have to save the plot as a .pdf in the acutal code chunk instead of below
 ```{r, fig.width=7, fig.height=7}
