@@ -18,6 +18,7 @@ MULTIQC_ENV = "multiqc"
 CUTADAPT_ENV = "cutadapt"
 BOWTIE_ENV = "bowtie1"
 BBMAP_ENV = "bbmap"
+R_ENV = "r_env_crispr"
 
 ## ----WORKFLOW----
 ## only need to use `expand` in rule all 
@@ -36,7 +37,25 @@ rule all:
         expand("crispr_screen_out/count_output/{sample_prefix}_counts.txt",
                 sample_prefix=SAMPLE_PREFIX),
         expand("crispr_screen_out/count_output/{sample_prefix}_bbpileup.log",
-                sample_prefix=SAMPLE_PREFIX)
+                sample_prefix=SAMPLE_PREFIX),
+        "crispr_screen_out/count_output/allSample_counts.tsv",
+        "crispr_screen_out/count_output/allSample_counts_long.tsv",
+        "crispr_screen_out/count_output/allSample_sgRNAcounts_wide.tsv",
+        "crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv",
+        "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv",
+        "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv",
+        "crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
+        "crispr_screen_out/plots/geneCount_PCA_plot.pdf",
+        "crispr_screen_out/qc_files/sgRNACount_PCA_results.pdf",
+        "crispr_screen_out/qc_files/geneCount_PCA_results.pdf",
+        "crispr_screen_out/plots/sample_totalCount_plot.pdf",
+        "crispr_screen_out/plots/sample_transCounts_plot.pdf",
+        "crispr_screen_out/qc_files/total_count_results.tsv",
+        "crispr_screen_out/qc_files/transform_count_results.tsv",
+        "crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf",
+        "crispr_screen_out/plots/geneCount_correlationMatrix.pdf",
+        "crispr_screen_out/qc_files/sgRNACount_correlation_results.tsv",
+        "crispr_screen_out/qc_files/geneCount_correlation_results.tsv"
         
 
 
@@ -149,13 +168,116 @@ rule run_bbmap:
     params:
         bbmap_pileup = "pileup.sh"
     shell:
-     """
-     {params.bbmap_pileup} in={input.in_samples} \
-                           out={output.count_out} \
-                           2>{log.log}
-     """
+        """
+        {params.bbmap_pileup} in={input.in_samples} \
+                            out={output.count_out} \
+                            2>{log.log}
+        """
 
 
+rule prep_count_files:
+    input:
+        inDir = "crispr_screen_out/count_output/" 
+    output:
+        combined_count_file = "crispr_screen_out/count_output/allSample_counts.tsv"
+    params:
+        out_file_name = "allSample_counts.tsv"
+    shell:
+        """
+        cd {input.inDir}
 
+        file_list=(*_counts.txt)
+        for f in ${file_list[*]};
+            do 
+                awk 'NR == 1 {print $0 "\tsampleid"; next;}{print $0 "\t" FILENAME;}' ${f} > proc_${f};
+            done
+
+        awk 'NR==FNR||FNR>1' proc_*_counts.txt >> {params.out_file_name}
+        """
+
+## THE START OF R ANALYSIS
+rule normalize_counts:
+    input:
+        comb_count_table = "crispr_screen_out/count_output/allSample_counts.tsv"
+    output:
+        comb_countLong_out = "crispr_screen_out/count_output/allSample_counts_long.tsv",
+        sgRNA_counts_wide = "crispr_screen_out/count_output/allSample_sgRNAcounts_wide.tsv",
+        norm_sgRNA_counts = "crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv",
+        gene_counts_wide = "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv",
+        norm_gene_counts = "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv"
+    conda:
+        R_ENV
+    shell:
+        """
+        Rscript src/normalize_counts.R --comb_count_table {input.comb_count_table} \
+                                       --comb_countLong_out {output.comb_countLong_out} \
+                                       --sgRNA_counts_wide {output.sgRNA_counts_wide} \
+                                       --norm_sgRNA_counts {output.norm_sgRNA_counts} \
+                                       --gene_counts_wide {output.gene_counts_wide} \
+                                       --norm_gene_counts {output.norm_gene_counts}
+        """
+
+rule run_pca:
+    input:
+        norm_sgRNA_counts = "crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv",
+        norm_gene_counts = "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv"
+    output:
+        sgRNA_PCA_plot = "crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
+        gene_PCA_plot = "crispr_screen_out/plots/geneCount_PCA_plot.pdf",
+        sgRNA_PCA_table = "crispr_screen_out/qc_files/sgRNACount_PCA_results.pdf",
+        gene_PCA_table = "crispr_screen_out/qc_files/geneCount_PCA_results.pdf"
+    conda:
+        R_ENV
+    shell:
+        """
+        Rscript src/run_pca.R --norm_sgRNA_counts {input.norm_sgRNA_counts} \
+                              --norm_gene_counts {input.norm_gene_counts} \
+                              --sgRNA_PCA_plot {output.sgRNA_PCA_plot} \
+                              --gene_PCA_plot {output.gene_PCA_plot} \
+                              --sgRNA_PCA_table {output.sgRNA_PCA_table} \
+                              --gene_PCA_table {output.gene_PCA_table}
+        """
+
+
+rule run_total_transform_counts:
+    input:
+        comb_countLong_table = "crispr_screen_out/count_output/allSample_counts_long.tsv"
+    output:
+        total_count_plot = "crispr_screen_out/plots/sample_totalCount_plot.pdf",
+        trans_count_plot = "crispr_screen_out/plots/sample_transCounts_plot.pdf",
+        total_count_table = "crispr_screen_out/qc_files/total_count_results.tsv",
+        trans_count_table = "crispr_screen_out/qc_files/transform_count_results.tsv"
+    conda:
+        R_ENV
+    shell:
+        """
+        Rscript src/run_totalTransform_counts.R --comb_countLong_table {input.comb_countLong_table} \
+                                                --total_count_plot {output.total_count_plot} \
+                                                --trans_count_plot {output.trans_count_plot} \
+                                                --total_count_table {output.total_count_table} \
+                                                --trans_count_table {output.trans_count_table}
+        """
+
+
+rule run_correlation:
+    input:
+        sgRNA_counts_wide = "crispr_screen_out/count_output/allSample_sgRNAcounts_wide.tsv",
+        gene_counts_wide = "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv" 
+    output:
+        sgRNA_corr_plot = "crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf",
+        gene_corr_plot = "crispr_screen_out/plots/geneCount_correlationMatrix.pdf",
+        sgRNA_corr_table = "crispr_screen_out/qc_files/sgRNACount_correlation_results.tsv",
+        gene_corr_table = "crispr_screen_out/qc_files/geneCount_correlation_results.tsv"
+    conda:
+        R_ENV
+    shell:
+        """
+        Rscript src/run_correlation.R --sgRNA_counts_wide {input.sgRNA_counts_wide} \
+                                      --gene_counts_wide {input.gene_counts_wide} \
+                                      --sgRNA_corr_plot {output.sgRNA_corr_plot} \
+                                      --gene_corr_plot {output.gene_corr_plot} \
+                                      --sgRNA_corr_table {output.sgRNA_corr_table} \
+                                      --gene_corr_table {output.gene_corr_table}
+        """
 
         
