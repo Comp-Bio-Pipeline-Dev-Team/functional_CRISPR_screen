@@ -21,7 +21,7 @@ library(corrr)
 **Functions**
 ```{r}
 ## reads in .txt file and adds a column with the sampleid so all table can be combined later 
-## might do this step with a for loop in python 
+## don't need this anymore since I do it in bash
 add_sampleid <- function(filepath,
                          wanted_sampleid){
   ## reading in file
@@ -139,6 +139,7 @@ run_total_counts <- function(comb_table,
     theme_bw(base_size = 20) +
     scale_fill_brewer(palette = brewer_palette,
                       guide = 'none') +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     labs(x = x_label,
          y = y_label,
          title = plot_title)
@@ -168,6 +169,7 @@ run_transform_counts <- function(comb_table,
     theme_bw(base_size = 20) +
     scale_fill_brewer(palette = brewer_palette,
                       guide = 'none') +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     labs(x = x_label,
          y = y_label,
          title = plot_title)
@@ -182,7 +184,8 @@ run_correlation <- function(wide_count_df,
                             corr_method,
                             text_size,
                             legend_barheight,
-                            legend_text_size){
+                            legend_text_size,
+                            legend_box_spacing){
   ## running correlation analysis
   corr_matrix <- cor(wide_count_df,
                      method = corr_method)
@@ -217,7 +220,7 @@ run_correlation <- function(wide_count_df,
           legend.ticks = element_blank(),
           legend.text = element_text(size = legend_text_size),
           legend.title = element_blank(),
-          legend.box.spacing = unit(-0.4, 'cm'))
+          legend.box.spacing = unit(legend_box_spacing, 'cm'))
   
   ## creating list of outputs
   my_list <- list(CorrMatrix = corr_matrix,
@@ -228,26 +231,15 @@ run_correlation <- function(wide_count_df,
 
 **File paths**
 ```{r}
-transE_high_s47_fp <- '../crispr_screen_out/count_output/transE-High_S47_L005_counts.txt'
-transE_low_s45_fp <- '../crispr_screen_out/count_output/transE-Low_S45_L005_counts.txt'
-transE_medium_s46_fp <- '../crispr_screen_out/count_output/transE-Medium_S46_L005_counts.txt'
-transE_pre_s48_fp <- '../crispr_screen_out/count_output/transE-Pre_S48_L005_counts.txt'
+comb_table_fp <- '../crispr_screen_out/count_output/test_files/allSample_counts_test.tsv'
 ```
 
-**Reading in count files**
-reads in .txt file and adds a sampleid column to each one before they're combined
+**Reading in count file**
+reads in .tsv file and edits the sampleid column to only include the sampleid
 ```{r}
-transE_high_s47_counts <- add_sampleid(filepath = transE_high_s47_fp,
-                                       wanted_sampleid = 'transE_high_s47')
-  
-transE_low_s45_counts <- add_sampleid(filepath = transE_low_s45_fp,
-                                      wanted_sampleid = 'transE_low_s45')
-  
-transE_medium_s46_counts <- add_sampleid(filepath = transE_medium_s46_fp,
-                                         wanted_sampleid = 'transE_medium_s46')
+comb_table <- read_tsv(comb_table_fp)
 
-transE_pre_s48_counts <- add_sampleid(filepath = transE_pre_s48_fp,
-                                      wanted_sampleid = 'transE_pre_s48')
+comb_table$sampleid <- gsub("*_counts.txt", "", comb_table$sampleid)
 ```
 ## **CPM normalization**
 **Combining all the count tables and normalizing them**
@@ -256,12 +248,7 @@ they're now in counts per million
 - the gene is the first part of the guide before the underscore in the #ID column 
 - number of counts by guide and number of counts by gene (do both for raw and then normalize them)
 ```{r}
-comb_counts <- rbind(transE_pre_s48_counts,
-                     transE_low_s45_counts,
-                     transE_medium_s46_counts,
-                     transE_high_s47_counts)
-
-comb_counts <- comb_counts %>% 
+comb_counts <- comb_table %>% 
   rename(sgRNA_id = `#ID`) %>% 
   select(sgRNA_id, Plus_reads, sampleid) %>% 
   separate_wider_delim(cols = sgRNA_id,
@@ -291,6 +278,11 @@ geneCount_table_out <- normalize_table(comb_table = comb_counts,
 gene_combCounts_wide_df <- geneCount_table_out$NonNormTable
 geneNorm_combCounts_df <- geneCount_table_out$NormTable
 ```
+
+```{r}
+read.table('../crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv')
+```
+
 
 ## **PCA analysis**
 **Calculating PCA**
@@ -341,7 +333,7 @@ don't need to do individual ones for sgRNA and gene bc they add up to the same t
 - colored by biological group
 - make a copy of the fastqs as fake data 
 - create fake metadata file to set up r scripts 
-```{r, fig.width=9.5, fig.height=5}
+```{r, fig.width=9.5, fig.height=7}
 total_counts_res <- run_total_counts(comb_table = comb_counts,
                                      sum_col = 'sampleid',
                                      bar_alpha = 0.6,
@@ -359,7 +351,7 @@ total_counts_plot
 ## **Transformed sgRNA reads plot**
 **log2 transformed sgRNA reads plot**
 I think its log2 transformed?
-```{r, fig.width=9.5, fig.height=6}
+```{r, fig.width=9.5, fig.height=7}
 transform_count_res <- run_transform_counts(comb_table = comb_counts,
                                             x_axis_col = 'sampleid',
                                             bar_alpha = 0.6,
@@ -391,8 +383,9 @@ for sgRNA ids
 sgRNA_corr_res <- run_correlation(wide_count_df = sgRNA_combCounts_wide_df,
                                   corr_method = 'spearman',
                                   text_size = 5,
-                                  legend_barheight = 26.45,
-                                  legend_text_size = 12)
+                                  legend_barheight = 23.6,
+                                  legend_text_size = 12,
+                                  legend_box_spacing = -0.3)
 
 sgRNA_corr_matrix <- sgRNA_corr_res$CorrMatrix
 sgRNA_corr_plot <- sgRNA_corr_res$CorrPlot
@@ -405,8 +398,9 @@ for individual genes
 gene_corr_res <- run_correlation(wide_count_df = gene_combCounts_wide_df,
                                  corr_method = 'spearman',
                                  text_size = 5,
-                                 legend_barheight = 26.45,
-                                 legend_text_size = 12)
+                                 legend_barheight = 23.6,
+                                 legend_text_size = 12,
+                                 legend_box_spacing = -0.3)
 
 gene_corr_matrix <- gene_corr_res$CorrMatrix
 gene_corr_plot <- gene_corr_res$CorrPlot
