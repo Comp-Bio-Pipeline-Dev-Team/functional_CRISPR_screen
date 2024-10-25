@@ -6,6 +6,7 @@ library(broom)
 library(magrittr)
 library(edgeR)
 library(stats)
+library(argparse)
 
 ## argparse to link with snakemake
 parser <- ArgumentParser()

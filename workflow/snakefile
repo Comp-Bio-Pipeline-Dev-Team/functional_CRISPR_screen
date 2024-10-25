@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 
-## ----USER PROVIDED INPUTS---
+## ----USER PROVIDED INPUTS----
 ## via the config paramter in run_snakemake.sh
 sample_id_file = pd.read_csv(config["sample_id_file"])
 SAMPLE_PREFIX = sample_id_file["sampleid"]
@@ -9,6 +9,13 @@ print(SAMPLE_PREFIX)
 
 RAW_SEQ_IN = config["raw_seq_in"]
 BOWTIE_INDEX = config["crispr_sg_index"]
+BOWTIE_MISMATCHES = config["bowtie_mismatches"]
+
+## ----CUTADAPT VECTOR VARIABLES----
+VECTOR_BP = "TTGTGGAAAGGACGAAACACCG" 
+## these will be editable defaults 
+VECTOR_MIN_OVERLP = config["vector_seq_minOverlap"]
+VECTOR_ERROR = config["vector_seq_error"]
 
 ## ----ENVIRONMENTS----
 ## soon to be docker singularities
@@ -28,6 +35,8 @@ rule all:
         "crispr_screen_out/multiqc_outputs/fastqc_crispr_screen.html",
         expand("crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz", 
                 sample_prefix = SAMPLE_PREFIX),
+        ##expand("crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz",
+                ##sample_prefix = SAMPLE_PREFIX),
         expand("crispr_screen_out/bowtie_unaligned/{sample_prefix}_mismatches_allowed_unaligned.sam",
                sample_prefix=SAMPLE_PREFIX),
         expand("crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.sam",
@@ -46,8 +55,8 @@ rule all:
         "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv",
         "crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
         "crispr_screen_out/plots/geneCount_PCA_plot.pdf",
-        "crispr_screen_out/qc_files/sgRNACount_PCA_results.pdf",
-        "crispr_screen_out/qc_files/geneCount_PCA_results.pdf",
+        "crispr_screen_out/qc_files/sgRNACount_PCA_results.tsv",
+        "crispr_screen_out/qc_files/geneCount_PCA_results.tsv",
         "crispr_screen_out/plots/sample_totalCount_plot.pdf",
         "crispr_screen_out/plots/sample_transCounts_plot.pdf",
         "crispr_screen_out/qc_files/total_count_results.tsv",
@@ -103,21 +112,33 @@ rule run_multiqc:
 ## STEP 1: running cutadapt
 ## specify how many samples can be run at the same time - config spec. w default 
 ## this step runs fine!
+## print("{}.testing{}.txt".format(var1, var2)) or f strings to edit the vector sequence - may not need the print statement
+## around it 
 rule run_cutadapt:
     input:
         in_samples = os.path.join(RAW_SEQ_IN, "{sample_prefix}_R1_001.fastq.gz")
     output:
         out_samples = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz"
+        ##out_untrimmed = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz"
     conda:
         CUTADAPT_ENV
     params:
-        guide_seq = "\"TTGTGGAAAGGACGAAACACCG;min_overlap=10;e=0.2\"",
-        guide_length = 20
+        vector_seq = "\"{};min_overlap={};e={}\"".format(VECTOR_BP, VECTOR_MIN_OVERLP, VECTOR_ERROR),
+        guide_length = 20,
+        tmp_out = "crispr_screen_out/cutadapt_outputs/tmp_{sample_prefix}.fastq.gz"
     shell:
         """
-        cutadapt -g {params.guide_seq} \
+        cutadapt -g {params.vector_seq} \
                  --length={params.guide_length} \
+                 --untrimmed-output {output.out_untrimmed} \
                  -o {output.out_samples} {input.in_samples}
+        
+        ##untrimmed output
+        cutadapt -g {params.vector_seq} \
+                 --untrimmed-output {output.out_untrimmed} \
+                 -o {params.tmp_out} {input.in_samples} 
+        
+        rm {params.tmp_out}
         """
 
 
@@ -134,7 +155,7 @@ rule run_bowtie:
     conda:
         BOWTIE_ENV
     params:
-        mismatches = 0,
+        mismatches = BOWTIE_MISMATCHES,
         bowtie_index = BOWTIE_INDEX
     shell:
         """
@@ -170,11 +191,11 @@ rule run_bbmap:
     shell:
         """
         {params.bbmap_pileup} in={input.in_samples} \
-                            out={output.count_out} \
-                            2>{log.log}
+                              out={output.count_out} \
+                              2>{log.log}
         """
 
-
+## any bash variables in curly brackets in the snakemake shell need to be escaped (double brackets instead of single)
 rule prep_count_files:
     input:
         inDir = "crispr_screen_out/count_output/" 
@@ -186,13 +207,15 @@ rule prep_count_files:
         """
         cd {input.inDir}
 
-        file_list=(*_counts.txt)
-        for f in ${file_list[*]};
+        file_list=( $(ls *counts.txt | sed 's/_counts.txt//g') )
+
+        for f in ${{file_list[*]}};
             do 
-                awk 'NR == 1 {print $0 "\tsampleid"; next;}{print $0 "\t" FILENAME;}' ${f} > proc_${f};
+                awk 'NR == 1 {{print $0 "\tsampleid"; next;}}{{print $0 "\t" FILENAME;}}' ${{f}}_counts.txt > ${{f}}_counts_final.txt;
             done
 
-        awk 'NR==FNR||FNR>1' proc_*_counts.txt >> {params.out_file_name}
+        awk 'NR==FNR||FNR>1' *_counts_final.txt >> {params.out_file_name}
+
         """
 
 ## THE START OF R ANALYSIS
@@ -222,10 +245,14 @@ rule run_pca:
         norm_sgRNA_counts = "crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv",
         norm_gene_counts = "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv"
     output:
-        sgRNA_PCA_plot = "crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
-        gene_PCA_plot = "crispr_screen_out/plots/geneCount_PCA_plot.pdf",
-        sgRNA_PCA_table = "crispr_screen_out/qc_files/sgRNACount_PCA_results.pdf",
-        gene_PCA_table = "crispr_screen_out/qc_files/geneCount_PCA_results.pdf"
+        sgRNA_PCA_plot = report("crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
+                                category="PCA Analysis",
+                                labels={"Figure": "sgRNA Count PCA"}),
+        gene_PCA_plot = report("crispr_screen_out/plots/geneCount_PCA_plot.pdf",
+                               category="PCA Analysis",
+                               labels={"Figure": "Gene Count PCA"}),
+        sgRNA_PCA_table = "crispr_screen_out/qc_files/sgRNACount_PCA_results.tsv",
+        gene_PCA_table = "crispr_screen_out/qc_files/geneCount_PCA_results.tsv"
     conda:
         R_ENV
     shell:
@@ -264,8 +291,12 @@ rule run_correlation:
         sgRNA_counts_wide = "crispr_screen_out/count_output/allSample_sgRNAcounts_wide.tsv",
         gene_counts_wide = "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv" 
     output:
-        sgRNA_corr_plot = "crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf",
-        gene_corr_plot = "crispr_screen_out/plots/geneCount_correlationMatrix.pdf",
+        sgRNA_corr_plot = report("crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf",
+                                  category="Correlation Analysis",
+                                  labels={"Figure": "sgRNA Count Correlation Plot"}),
+        gene_corr_plot = report("crispr_screen_out/plots/geneCount_correlationMatrix.pdf",
+                                category="Correlation Analysis",
+                                labels={"Figure": "Gene Count Correlation Plot"}),
         sgRNA_corr_table = "crispr_screen_out/qc_files/sgRNACount_correlation_results.tsv",
         gene_corr_table = "crispr_screen_out/qc_files/geneCount_correlation_results.tsv"
     conda:

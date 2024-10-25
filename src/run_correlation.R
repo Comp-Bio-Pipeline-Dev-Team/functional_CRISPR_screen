@@ -9,6 +9,7 @@ library(edgeR)
 library(stats)
 library(corrplot)
 library(corrr)
+library(argparse)
 
 ## argparse to link with snakemake
 parser <- ArgumentParser()
@@ -83,7 +84,7 @@ run_correlation <- function(wide_count_df,
           legend.box.spacing = unit(legend_box_spacing, 'cm'))
   
   ## creating list of outputs
-  my_list <- list(CorrMatrix = corr_matrix,
+  my_list <- list(CorrMatrix = proc_corr_matrix,
                   CorrPlot = corr_plot)
   return(my_list)
 }
