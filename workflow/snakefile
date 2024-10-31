@@ -198,14 +198,16 @@ rule run_bbmap:
 ## any bash variables in curly brackets in the snakemake shell need to be escaped (double brackets instead of single)
 rule prep_count_files:
     input:
-        inDir = "crispr_screen_out/count_output/" 
+        decoy_in = expand("crispr_screen_out/count_output/{sample_prefix}_counts.txt",
+                           sample_prefix=SAMPLE_PREFIX) 
     output:
         combined_count_file = "crispr_screen_out/count_output/allSample_counts.tsv"
     params:
+        inDir = "crispr_screen_out/count_output/",
         out_file_name = "allSample_counts.tsv"
     shell:
         """
-        cd {input.inDir}
+        cd {params.inDir}
 
         file_list=( $(ls *counts.txt | sed 's/_counts.txt//g') )
 
