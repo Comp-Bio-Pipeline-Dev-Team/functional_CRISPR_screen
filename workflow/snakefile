@@ -20,6 +20,7 @@ VECTOR_ERROR = config["vector_seq_error"]
 ## ----ENVIRONMENTS----
 ## soon to be docker singularities
 ## we don't want users to have access to this 
+## can change these to "envs/env.yml" instead of having them installed
 FASTQC_ENV = "fastqc"
 MULTIQC_ENV = "multiqc"
 CUTADAPT_ENV = "cutadapt"
@@ -35,8 +36,8 @@ rule all:
         "crispr_screen_out/multiqc_outputs/fastqc_crispr_screen.html",
         expand("crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz", 
                 sample_prefix = SAMPLE_PREFIX),
-        ##expand("crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz",
-                ##sample_prefix = SAMPLE_PREFIX),
+        expand("crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz",
+                sample_prefix = SAMPLE_PREFIX),
         expand("crispr_screen_out/bowtie_unaligned/{sample_prefix}_mismatches_allowed_unaligned.sam",
                sample_prefix=SAMPLE_PREFIX),
         expand("crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.sam",
@@ -118,8 +119,8 @@ rule run_cutadapt:
     input:
         in_samples = os.path.join(RAW_SEQ_IN, "{sample_prefix}_R1_001.fastq.gz")
     output:
-        out_samples = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz"
-        ##out_untrimmed = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz"
+        out_samples = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz",
+        out_untrimmed = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz"
     conda:
         CUTADAPT_ENV
     params:
@@ -199,7 +200,7 @@ rule run_bbmap:
 rule prep_count_files:
     input:
         decoy_in = expand("crispr_screen_out/count_output/{sample_prefix}_counts.txt",
-                           sample_prefix=SAMPLE_PREFIX) 
+                           sample_prefix=SAMPLE_PREFIX)
     output:
         combined_count_file = "crispr_screen_out/count_output/allSample_counts.tsv"
     params:
@@ -217,7 +218,6 @@ rule prep_count_files:
             done
 
         awk 'NR==FNR||FNR>1' *_counts_final.txt >> {params.out_file_name}
-
         """
 
 ## THE START OF R ANALYSIS
@@ -247,12 +247,8 @@ rule run_pca:
         norm_sgRNA_counts = "crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv",
         norm_gene_counts = "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv"
     output:
-        sgRNA_PCA_plot = report("crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
-                                category="PCA Analysis",
-                                labels={"Figure": "sgRNA Count PCA"}),
-        gene_PCA_plot = report("crispr_screen_out/plots/geneCount_PCA_plot.pdf",
-                               category="PCA Analysis",
-                               labels={"Figure": "Gene Count PCA"}),
+        sgRNA_PCA_plot = "crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
+        gene_PCA_plot = "crispr_screen_out/plots/geneCount_PCA_plot.pdf",
         sgRNA_PCA_table = "crispr_screen_out/qc_files/sgRNACount_PCA_results.tsv",
         gene_PCA_table = "crispr_screen_out/qc_files/geneCount_PCA_results.tsv"
     conda:
@@ -293,12 +289,8 @@ rule run_correlation:
         sgRNA_counts_wide = "crispr_screen_out/count_output/allSample_sgRNAcounts_wide.tsv",
         gene_counts_wide = "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv" 
     output:
-        sgRNA_corr_plot = report("crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf",
-                                  category="Correlation Analysis",
-                                  labels={"Figure": "sgRNA Count Correlation Plot"}),
-        gene_corr_plot = report("crispr_screen_out/plots/geneCount_correlationMatrix.pdf",
-                                category="Correlation Analysis",
-                                labels={"Figure": "Gene Count Correlation Plot"}),
+        sgRNA_corr_plot = "crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf",
+        gene_corr_plot = "crispr_screen_out/plots/geneCount_correlationMatrix.pdf",
         sgRNA_corr_table = "crispr_screen_out/qc_files/sgRNACount_correlation_results.tsv",
         gene_corr_table = "crispr_screen_out/qc_files/geneCount_correlation_results.tsv"
     conda:

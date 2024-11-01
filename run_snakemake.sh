@@ -1,5 +1,7 @@
 #!/bin/bash
 
+## can add the --dry-run flag to dry run the workflow
+
 snakemake \
     -s workflow/snakefile \
     -c 10 \
@@ -10,4 +12,4 @@ snakemake \
     vector_seq_minOverlap='10' \
     vector_seq_error='0.2' \
     crispr_sg_index='reference_data/human_crispr_sgRNA_brunello/human_crispr_sg_brunello' \
-    --report crispr_functional_screen_report.html
+    --report crispr_functional_screen_report.html ##can only run the --report flag after the entire workflow has been run through
