@@ -1,0 +1,13 @@
+format: 
+  html: 
+    toc: true
+    html-math-method: katex
+    theme: cosmo 
+    #css: styles.css
+    embed-resources: true
+    smooth-scroll: true
+
+editor: visual
+
+execute:
+  echo: false
