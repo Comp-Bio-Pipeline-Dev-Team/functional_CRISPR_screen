@@ -1,5 +1,5 @@
 format: 
-  html: 
+  html:
     toc: true
     html-math-method: katex
     theme: cosmo 

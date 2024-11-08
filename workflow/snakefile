@@ -74,7 +74,8 @@ rule all:
         "crispr_screen_out/qc_files/geneCount_correlation_results.tsv",
         expand("report/summary_stats/{sample_prefix}_overall_stats.tsv",
                 sample_prefix=SAMPLE_PREFIX),
-        "report/summary_stats/summary_stat_table.tsv"
+        "report/summary_stats/summary_stat_table.tsv",
+        "report/dev_report.html"
         
 
 
@@ -372,4 +373,27 @@ rule combine_stat_table:
         cat {input.cols_in} {input.test_in} > {output.combined_stat_out}
         """
 
+## need to test this..i'm not sure how its going to go 
+rule render_report:
+    input:
+        sgRNA_PCA_png = "report/plots/sgRNACount_PCA_plot.png",
+        gene_PCA_png = "report/plots/geneCount_PCA_plot.png",
+        total_count_png = "report/plots/sample_totalCount_plot.png",
+        trans_count_png = "report/plots/sample_transCounts_plot.png",
+        sgRNA_corr_png = "report/plots/sgRNACount_correlationMatrix.png",
+        gene_corr_png = "report/plots/geneCount_correlationMatrix.png",
+        combined_stat_table = "report/summary_stats/summary_stat_table.tsv",
+        report_doc = "report/dev_report.qmd"
+    output:
+        report_html = "report/dev_report.html"
+    params:
+        bowtie_mismatches = BOWTIE_MISMATCHES,
+        report_vars = "report/_variables.yml"
+    shell:
+        """
+        mismatches={params.bowtie_mismatches}
+        printf "bowtie_mismatches: $mismatches" > {params.report_vars}
+
+        quarto render {input.report_doc}
+        """
         

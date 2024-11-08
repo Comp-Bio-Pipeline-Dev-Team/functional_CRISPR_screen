@@ -1,5 +1,9 @@
 ---
 title: "test summary report"
+date: last-modified
+format:
+    html: default
+    pdf: default
 editor: 
     render-on-save: true
 ---
@@ -40,7 +44,7 @@ kable(summary_table)
 | Total Reads Sequenced | Total number of reads sequenced in your sample. |
 | Reads with Vector | Total number of reads containing the vector sequence. This is the number of reads used for alignment. |
 | Reads without Vector | Total number of reads where the vector sequence was not detected and therefore not considered for sgRNA mapping. These reads are not included in the alignment step. |
-| Reads Mapped to sgRNA | Total number of reads that contained vector sequence that had a read mapping to a sgRNA at the set mismatch rate of < insert mismatch rate>.|
+| Reads Mapped to sgRNA | Total number of reads that contained vector sequence that had a read mapping to a sgRNA at the set mismatch rate of {{< var bowtie_mismatches >}}.|
 | Total sgRNA Represented | The total number of unique guides with at least 1 read count detected. Percentage is based upon fasta of guide library used as the reference. |
 | sgRNA above 10 Reads | The total number of unique guides with at least 10 read counts detected. Percentage is based upon fasta of guide library used as the reference. |
 
