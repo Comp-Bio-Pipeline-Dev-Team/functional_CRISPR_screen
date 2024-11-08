@@ -3031,46 +3031,65 @@ vertical-align: -.125em;
 <p>this my attempt at pulling a table in. can read in .tsv/.csv files via R or python (I’m using R here). ive hidden the code chunk so you can only see the output.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="tbl-test" class="anchored">
+<div id="tbl-summaryStats" class="anchored">
 <table class="table table-sm table-striped small">
-<caption>Table 1: test render table</caption>
+<caption>Table 1: sample counts per analysis step</caption>
+<colgroup>
+<col style="width: 20%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 13%">
+</colgroup>
 <thead>
 <tr class="header">
-<th style="text-align: left;">sampleid</th>
-<th style="text-align: right;">PC1</th>
-<th style="text-align: right;">PC2</th>
-<th style="text-align: right;">PC3</th>
-<th style="text-align: right;">PC4</th>
+<th style="text-align: left;">Sample ID</th>
+<th style="text-align: right;">Total Reads Sequenced</th>
+<th style="text-align: right;">Reads with Vector</th>
+<th style="text-align: right;">Reads without Vector</th>
+<th style="text-align: left;">Reads Mapped to sgRNA</th>
+<th style="text-align: right;">Total sgRNA Represented</th>
+<th style="text-align: right;">sgRNA above 10 Reads</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">transE.High_S47_L005</td>
-<td style="text-align: right;">-7.693184</td>
-<td style="text-align: right;">92.74522</td>
-<td style="text-align: right;">38.47532</td>
-<td style="text-align: right;">0</td>
+<td style="text-align: left;">transE-High_S47_L005</td>
+<td style="text-align: right;">1263892</td>
+<td style="text-align: right;">445377</td>
+<td style="text-align: right;">4036.75</td>
+<td style="text-align: left;">30431955 (89.29%)</td>
+<td style="text-align: right;">18894</td>
+<td style="text-align: right;">18514</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">transE.Low_S45_L005</td>
-<td style="text-align: right;">85.763415</td>
-<td style="text-align: right;">-53.27580</td>
-<td style="text-align: right;">31.95589</td>
-<td style="text-align: right;">0</td>
+<td style="text-align: left;">transE-Low_S45_L005</td>
+<td style="text-align: right;">992104</td>
+<td style="text-align: right;">444769</td>
+<td style="text-align: right;">5474.50</td>
+<td style="text-align: left;">29817404 (88.71%)</td>
+<td style="text-align: right;">18161</td>
+<td style="text-align: right;">17895</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">transE.Medium_S46_L005</td>
-<td style="text-align: right;">-93.667216</td>
-<td style="text-align: right;">-53.98131</td>
-<td style="text-align: right;">12.31999</td>
-<td style="text-align: right;">0</td>
+<td style="text-align: left;">transE-Medium_S46_L005</td>
+<td style="text-align: right;">1434710</td>
+<td style="text-align: right;">553272</td>
+<td style="text-align: right;">7389.50</td>
+<td style="text-align: left;">37816504 (88.86%)</td>
+<td style="text-align: right;">20015</td>
+<td style="text-align: right;">19383</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">transE.Pre_S48_L005</td>
-<td style="text-align: right;">15.596985</td>
-<td style="text-align: right;">14.51189</td>
-<td style="text-align: right;">-82.75121</td>
-<td style="text-align: right;">0</td>
+<td style="text-align: left;">transE-Pre_S48_L005</td>
+<td style="text-align: right;">1163340</td>
+<td style="text-align: right;">523980</td>
+<td style="text-align: right;">4476.75</td>
+<td style="text-align: left;">35301646 (88.86%)</td>
+<td style="text-align: right;">18711</td>
+<td style="text-align: right;">18420</td>
 </tr>
 </tbody>
 </table>
@@ -3087,7 +3106,7 @@ Starting out, we check the quality of the FASTQs we recieve along with the seque
 <p><strong>Key considerations:</strong></p>
 <ul>
 <li><p>Are the sequences properly positioned on the sense strand or are they reverse complemented?</p></li>
-<li><p>Is the sgRNA position staggered or not staggered?Staggering sgRNAs increases library complexity and provides the sequencer with greater diversity.</p></li>
+<li><p>Is the sgRNA position staggered or not staggered? Staggering sgRNAs increases library complexity and provides the sequencer with greater diversity.</p></li>
 <li><p>What is the plasmid/vector sequences on the 5’ end? This is library specific and will change depending on which sgRNA library you prepped your samples with.</p></li>
 </ul></li>
 <li><p><strong>Cutadapt</strong><br>
