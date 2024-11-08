@@ -11,5 +11,5 @@ snakemake \
     bowtie_mismatches='0' \
     vector_seq_minOverlap='10' \
     vector_seq_error='0.2' \
-    crispr_sg_index='reference_data/human_crispr_sgRNA_brunello/human_crispr_sg_brunello' \
-    --report crispr_functional_screen_report.html ##can only run the --report flag after the entire workflow has been run through
+    crispr_sg_index='reference_data/human_crispr_sgRNA_brunello/human_crispr_sg_brunello'
+    ##--report crispr_functional_screen_report.html ##can only run the --report flag after the entire workflow has been run through
