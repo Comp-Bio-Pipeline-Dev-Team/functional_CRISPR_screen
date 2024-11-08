@@ -231,7 +231,7 @@ run_correlation <- function(wide_count_df,
 
 **File paths**
 ```{r}
-comb_table_fp <- '../crispr_screen_out/count_output/allSample_counts.tsv'
+comb_table_fp <- '../crispr_screen_out/count_output/allSample_counts_long.tsv'
 ```
 
 **Reading in count file**
@@ -241,6 +241,7 @@ comb_table <- read_tsv(comb_table_fp)
 
 comb_table$sampleid <- gsub("*_counts.txt", "", comb_table$sampleid)
 ```
+
 ## **CPM normalization**
 **Combining all the count tables and normalizing them**
 they're now in counts per million 

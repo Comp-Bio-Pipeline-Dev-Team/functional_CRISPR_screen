@@ -21,14 +21,22 @@ parser$add_argument("-gw",
                     "--gene_counts_wide",
                     dest = "gene_count_wide_fp",
                     help = "Filepath to the wide version of the gene counts table file as a .tsv.")
-parser$add_argument("-scp",
-                    "--sgRNA_corr_plot",
-                    dest = "sgRNA_corr_fp",
+parser$add_argument("-scpd",
+                    "--sgRNA_corr_pdf",
+                    dest = "sgRNA_corr_pdf_fp",
                     help = "Filepath to the sgRNA count correlation heatmap as a .pdf.")
-parser$add_argument("-gc",
-                    "--gene_corr_plot",
-                    dest = "gene_corr_fp",
+parser$add_argument("-scpn",
+                    "--sgRNA_corr_png",
+                    dest = "sgRNA_corr_png_fp",
+                    help = "Filepath to the sgRNA count correlation heatmap as a .png.")
+parser$add_argument("-gcpd",
+                    "--gene_corr_pdf",
+                    dest = "gene_corr_pdf_fp",
                     help = "Filepath to the gene count correlation heatmap as a .pdf.")
+parser$add_argument("-gcpn",
+                    "--gene_corr_png",
+                    dest = "gene_corr_png_fp",
+                    help = "Filepath to the gene count correlation heatmap as a .png.")
 parser$add_argument("-sgct",
                     "--sgRNA_corr_table",
                     dest = "sgRNA_corr_table_fp",
@@ -117,12 +125,22 @@ gene_corr_matrix <- gene_corr_res$CorrMatrix
 gene_corr_plot <- gene_corr_res$CorrPlot
 
 ## saving my outputs
-## plots
-ggsave(args$sgRNA_corr_fp,
+## plots - pdf
+ggsave(args$sgRNA_corr_pdf_fp,
        plot = sgRNA_corr_plot,
        width = 10,
        height = 8)
-ggsave(args$gene_corr_fp,
+ggsave(args$gene_corr_pdf_fp,
+       plot = gene_corr_plot,
+       width = 10,
+       height = 8)
+
+## plots - png
+ggsave(args$sgRNA_corr_png_fp,
+       plot = sgRNA_corr_plot,
+       width = 10,
+       height = 8)
+ggsave(args$gene_corr_png_fp,
        plot = gene_corr_plot,
        width = 10,
        height = 8)

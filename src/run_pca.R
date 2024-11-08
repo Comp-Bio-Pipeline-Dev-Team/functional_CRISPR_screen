@@ -18,14 +18,22 @@ parser$add_argument("-ng",
                     "--norm_gene_counts",
                     dest = "norm_gene_count_fp",
                     help = "Filepath to the cpm normalized gene counts table file as a .tsv.")
-parser$add_argument("-sgp",
-                    "--sgRNA_PCA_plot",
-                    dest = "sgRNA_pca_fp",
+parser$add_argument("-sgpd",
+                    "--sgRNA_PCA_pdf",
+                    dest = "sgRNA_pdf_fp",
                     help = "Filepath to the sgRNA count PCA plot as a .pdf.")
-parser$add_argument("-gp",
-                    "--gene_PCA_plot",
-                    dest = "gene_pca_fp",
+parser$add_argument("-sgpn",
+                    "--sgRNA_PCA_png",
+                    dest = "sgRNA_png_fp",
+                    help = "Filepath to the sgRNA count PCA plot as a .png.")
+parser$add_argument("-gpd",
+                    "--gene_PCA_pdf",
+                    dest = "gene_pdf_fp",
                     help = "Filepath to the gene count PCA plot as a .pdf.")
+parser$add_argument("-gpn",
+                    "--gene_PCA_png",
+                    dest = "gene_png_fp",
+                    help = "Filepath to the gene count PCA plot as a .png.")
 parser$add_argument("-sgpt",
                     "--sgRNA_PCA_table",
                     dest = "sgRNA_pca_table_fp",
@@ -116,12 +124,22 @@ gene_count_pcaTable <- gene_pca_res$PCATable
 gene_pca_plot <- gene_pca_res$PCAPlot
 
 ## saving my outputs
-## plots
-ggsave(args$sgRNA_pca_fp,
+## plots - pdf
+ggsave(args$sgRNA_pdf_fp,
        plot = sgRNA_pca_plot,
        width = 8,
        height = 4)
-ggsave(args$gene_pca_fp,
+ggsave(args$gene_pdf_fp,
+       plot = gene_pca_plot,
+       width = 8,
+       height = 4)
+
+## plots - png (for report generation)
+ggsave(args$sgRNA_png_fp,
+       plot = sgRNA_pca_plot,
+       width = 8,
+       height = 4)
+ggsave(args$gene_png_fp,
        plot = gene_pca_plot,
        width = 8,
        height = 4)

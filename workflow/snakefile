@@ -55,17 +55,26 @@ rule all:
         "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv",
         "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv",
         "crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
+        "report/plots/sgRNACount_PCA_plot.png",
         "crispr_screen_out/plots/geneCount_PCA_plot.pdf",
+        "report/plots/geneCount_PCA_plot.png",
         "crispr_screen_out/qc_files/sgRNACount_PCA_results.tsv",
         "crispr_screen_out/qc_files/geneCount_PCA_results.tsv",
         "crispr_screen_out/plots/sample_totalCount_plot.pdf",
+        "report/plots/sample_totalCount_plot.png",
         "crispr_screen_out/plots/sample_transCounts_plot.pdf",
+        "report/plots/sample_transCounts_plot.png",
         "crispr_screen_out/qc_files/total_count_results.tsv",
         "crispr_screen_out/qc_files/transform_count_results.tsv",
         "crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf",
+        "report/plots/sgRNACount_correlationMatrix.png",
         "crispr_screen_out/plots/geneCount_correlationMatrix.pdf",
+        "report/plots/geneCount_correlationMatrix.png",
         "crispr_screen_out/qc_files/sgRNACount_correlation_results.tsv",
-        "crispr_screen_out/qc_files/geneCount_correlation_results.tsv"
+        "crispr_screen_out/qc_files/geneCount_correlation_results.tsv",
+        expand("report/summary_stats/{sample_prefix}_overall_stats.tsv",
+                sample_prefix=SAMPLE_PREFIX),
+        "report/summary_stats/summary_stat_table.tsv"
         
 
 
@@ -247,8 +256,10 @@ rule run_pca:
         norm_sgRNA_counts = "crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv",
         norm_gene_counts = "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv"
     output:
-        sgRNA_PCA_plot = "crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
-        gene_PCA_plot = "crispr_screen_out/plots/geneCount_PCA_plot.pdf",
+        sgRNA_PCA_pdf = "crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
+        sgRNA_PCA_png = "report/plots/sgRNACount_PCA_plot.png",
+        gene_PCA_pdf = "crispr_screen_out/plots/geneCount_PCA_plot.pdf",
+        gene_PCA_png = "report/plots/geneCount_PCA_plot.png", 
         sgRNA_PCA_table = "crispr_screen_out/qc_files/sgRNACount_PCA_results.tsv",
         gene_PCA_table = "crispr_screen_out/qc_files/geneCount_PCA_results.tsv"
     conda:
@@ -257,8 +268,10 @@ rule run_pca:
         """
         Rscript src/run_pca.R --norm_sgRNA_counts {input.norm_sgRNA_counts} \
                               --norm_gene_counts {input.norm_gene_counts} \
-                              --sgRNA_PCA_plot {output.sgRNA_PCA_plot} \
-                              --gene_PCA_plot {output.gene_PCA_plot} \
+                              --sgRNA_PCA_pdf {output.sgRNA_PCA_pdf} \
+                              --sgRNA_PCA_png {output.sgRNA_PCA_png} \
+                              --gene_PCA_pdf {output.gene_PCA_pdf} \
+                              --gene_PCA_png {output.gene_PCA_png} \
                               --sgRNA_PCA_table {output.sgRNA_PCA_table} \
                               --gene_PCA_table {output.gene_PCA_table}
         """
@@ -268,8 +281,10 @@ rule run_total_transform_counts:
     input:
         comb_countLong_table = "crispr_screen_out/count_output/allSample_counts_long.tsv"
     output:
-        total_count_plot = "crispr_screen_out/plots/sample_totalCount_plot.pdf",
-        trans_count_plot = "crispr_screen_out/plots/sample_transCounts_plot.pdf",
+        total_count_pdf = "crispr_screen_out/plots/sample_totalCount_plot.pdf",
+        total_count_png = "report/plots/sample_totalCount_plot.png",
+        trans_count_pdf = "crispr_screen_out/plots/sample_transCounts_plot.pdf",
+        trans_count_png = "report/plots/sample_transCounts_plot.png",
         total_count_table = "crispr_screen_out/qc_files/total_count_results.tsv",
         trans_count_table = "crispr_screen_out/qc_files/transform_count_results.tsv"
     conda:
@@ -277,8 +292,10 @@ rule run_total_transform_counts:
     shell:
         """
         Rscript src/run_totalTransform_counts.R --comb_countLong_table {input.comb_countLong_table} \
-                                                --total_count_plot {output.total_count_plot} \
-                                                --trans_count_plot {output.trans_count_plot} \
+                                                --total_count_pdf {output.total_count_pdf} \
+                                                --total_count_png {output.total_count_png} \
+                                                --trans_count_pdf {output.trans_count_pdf} \
+                                                --trans_count_png {output.trans_count_png} \
                                                 --total_count_table {output.total_count_table} \
                                                 --trans_count_table {output.trans_count_table}
         """
@@ -289,8 +306,10 @@ rule run_correlation:
         sgRNA_counts_wide = "crispr_screen_out/count_output/allSample_sgRNAcounts_wide.tsv",
         gene_counts_wide = "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv" 
     output:
-        sgRNA_corr_plot = "crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf",
-        gene_corr_plot = "crispr_screen_out/plots/geneCount_correlationMatrix.pdf",
+        sgRNA_corr_pdf = "crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf",
+        sgRNA_corr_png = "report/plots/sgRNACount_correlationMatrix.png",
+        gene_corr_pdf = "crispr_screen_out/plots/geneCount_correlationMatrix.pdf",
+        gene_corr_png = "report/plots/geneCount_correlationMatrix.png",
         sgRNA_corr_table = "crispr_screen_out/qc_files/sgRNACount_correlation_results.tsv",
         gene_corr_table = "crispr_screen_out/qc_files/geneCount_correlation_results.tsv"
     conda:
@@ -299,10 +318,58 @@ rule run_correlation:
         """
         Rscript src/run_correlation.R --sgRNA_counts_wide {input.sgRNA_counts_wide} \
                                       --gene_counts_wide {input.gene_counts_wide} \
-                                      --sgRNA_corr_plot {output.sgRNA_corr_plot} \
-                                      --gene_corr_plot {output.gene_corr_plot} \
+                                      --sgRNA_corr_pdf {output.sgRNA_corr_pdf} \
+                                      --sgRNA_corr_png {output.sgRNA_corr_png} \
+                                      --gene_corr_pdf {output.gene_corr_pdf} \
+                                      --gene_corr_png {output.gene_corr_png} \
                                       --sgRNA_corr_table {output.sgRNA_corr_table} \
                                       --gene_corr_table {output.gene_corr_table}
+        """
+
+## THINGS NEEDED FOR REPORT GENERATION
+rule assemble_stat_table:
+    input:
+        raw_file = os.path.join(RAW_SEQ_IN, "{sample_prefix}_R1_001.fastq.gz"),
+        trimmed_file = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz",
+        untrimmed_file = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz",
+        bowtie_log = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.log",
+        counts_file = "crispr_screen_out/count_output/{sample_prefix}_counts.txt"
+    output:
+        sample_stat_out = "report/summary_stats/{sample_prefix}_overall_stats.tsv"
+    params:
+        samples = lambda wc: wc.get("sample_prefix")
+    shell:
+        """
+        sampleid={params.samples}
+
+        total_num_reads=$(awk 'END{{print NR/4}}' {input.raw_file})
+
+        reads_with_vector=$(awk 'END{{print NR/4}}' {input.trimmed_file})
+
+        reads_with_noVector=$(awk 'END{{print NR/4}}' {input.untrimmed_file})
+
+        reads_mapped_sgRNA=$(grep "reads with at least one alignment:" {input.bowtie_log} | sed 's/# reads with at least one alignment: //g')
+
+        total_sgRNA=$(awk '$7 != 0 {{print $7}}' {input.counts_file} | wc -l)
+
+        sgRNA_moreThan_10=$(awk -F "\t" '{{ if ($7 >= 10) {{print $7}} }}' {input.counts_file} | wc -l)
+
+        tab=$(printf '\t')
+
+        echo "$sampleid$tab$total_num_reads$tab$reads_with_vector$tab$reads_with_noVector$tab$reads_mapped_sgRNA$tab$total_sgRNA$tab$sgRNA_moreThan_10" > {output.sample_stat_out}
+        """
+
+
+rule combine_stat_table:
+    input:
+        cols_in = "report/summary_stats/stat_table_cols.tsv",
+        test_in = expand("report/summary_stats/{sample_prefix}_overall_stats.tsv",
+                         sample_prefix=SAMPLE_PREFIX)
+    output:
+        combined_stat_out = "report/summary_stats/summary_stat_table.tsv"
+    shell:
+        """
+        cat {input.cols_in} {input.test_in} > {output.combined_stat_out}
         """
 
         

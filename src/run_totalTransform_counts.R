@@ -14,14 +14,22 @@ parser$add_argument("-cl",
                     "--comb_countLong_table",
                     dest = "comb_count_fp",
                     help = "Filepath to the long version of the total counts table file as a .tsv.")
-parser$add_argument("-tp",
-                    "--total_count_plot",
-                    dest = "total_count_plot_fp",
+parser$add_argument("-tpd",
+                    "--total_count_pdf",
+                    dest = "total_count_pdf_fp",
                     help = "Filepath to the total count plot as a .pdf.")
-parser$add_argument("-trp",
-                    "--trans_count_plot",
-                    dest = "trans_count_plot_fp",
+parser$add_argument("-tpn",
+                    "--total_count_png",
+                    dest = "total_count_png_fp",
+                    help = "Filepath to the total count plot as a .png.")
+parser$add_argument("-trpd",
+                    "--trans_count_pdf",
+                    dest = "trans_count_pdf_fp",
                     help = "Filepath to the log2 transformed count plot as a .pdf.")
+parser$add_argument("-trpn",
+                    "--trans_count_png",
+                    dest = "trans_count_png_fp",
+                    help = "Filepath to the log2 transformed count plot as a .png.")
 parser$add_argument("-tct",
                     "--total_count_table",
                     dest = "total_count_table_fp",
@@ -126,12 +134,22 @@ transform_counts_table <- transform_count_res$TransformCountTable
 transform_counts_plot <- transform_count_res$TransformCountPlot
 
 ## saving my outputs
-## plots
-ggsave(args$total_count_plot_fp,
+## plots - pdf
+ggsave(args$total_count_pdf_fp,
        plot = total_counts_plot,
        width = 9.5,
        height = 5)
-ggsave(args$trans_count_plot_fp,
+ggsave(args$trans_count_pdf_fp,
+       plot = transform_counts_plot,
+       width = 9.5,
+       height = 5)
+
+## plots - png
+ggsave(args$total_count_png_fp,
+       plot = total_counts_plot,
+       width = 9.5,
+       height = 5)
+ggsave(args$trans_count_png_fp,
        plot = transform_counts_plot,
        width = 9.5,
        height = 5)
