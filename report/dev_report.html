@@ -3096,6 +3096,45 @@ vertical-align: -.125em;
 </div>
 </div>
 </div>
+<table class="table-striped table">
+<caption>summary table explained</caption>
+<colgroup>
+<col style="width: 25%">
+<col style="width: 75%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Column</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Total Reads Sequenced</td>
+<td>Total number of reads sequenced in your sample.</td>
+</tr>
+<tr class="even">
+<td>Reads with Vector</td>
+<td>Total number of reads containing the vector sequence. This is the number of reads used for alignment.</td>
+</tr>
+<tr class="odd">
+<td>Reads without Vector</td>
+<td>Total number of reads where the vector sequence was not detected and therefore not considered for sgRNA mapping. These reads are not included in the alignment step.</td>
+</tr>
+<tr class="even">
+<td>Reads Mapped to sgRNA</td>
+<td>Total number of reads that contained vector sequence that had a read mapping to a sgRNA at the set mismatch rate of &lt; insert mismatch rate&gt;.</td>
+</tr>
+<tr class="odd">
+<td>Total sgRNA Represented</td>
+<td>The total number of unique guides with at least 1 read count detected. Percentage is based upon fasta of guide library used as the reference.</td>
+</tr>
+<tr class="even">
+<td>sgRNA above 10 Reads</td>
+<td>The total number of unique guides with at least 10 read counts detected. Percentage is based upon fasta of guide library used as the reference.</td>
+</tr>
+</tbody>
+</table>
 </section>
 <section id="what-we-do" class="level1">
 <h1>what we do</h1>
