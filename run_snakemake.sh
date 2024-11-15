@@ -3,6 +3,9 @@
 ## can add the --dry-run flag to dry run the workflow
 
 snakemake \
+    -R \
+    --until \
+    render_report \
     -s workflow/snakefile \
     -c 10 \
     --use-conda \

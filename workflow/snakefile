@@ -75,7 +75,8 @@ rule all:
         expand("report/summary_stats/{sample_prefix}_overall_stats.tsv",
                 sample_prefix=SAMPLE_PREFIX),
         "report/summary_stats/summary_stat_table.tsv",
-        "report/dev_report.html"
+        "report/dev_report.html",
+        "report/dev_report.pdf"
         
 
 
@@ -385,15 +386,16 @@ rule render_report:
         combined_stat_table = "report/summary_stats/summary_stat_table.tsv",
         report_doc = "report/dev_report.qmd"
     output:
-        report_html = "report/dev_report.html"
+        report_html = "report/dev_report.html",
+        report_pdf = "report/dev_report.pdf"
+    conda:
+        R_ENV
     params:
         bowtie_mismatches = BOWTIE_MISMATCHES,
         report_vars = "report/_variables.yml"
     shell:
         """
-        mismatches={params.bowtie_mismatches}
-        printf "bowtie_mismatches: $mismatches" > {params.report_vars}
+        printf "bowtie_mismatches: {params.bowtie_mismatches}" > {params.report_vars}
 
         quarto render {input.report_doc}
-        """
-        
+        """       

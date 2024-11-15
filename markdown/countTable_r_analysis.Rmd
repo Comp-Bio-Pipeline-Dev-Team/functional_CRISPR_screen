@@ -500,6 +500,11 @@ ggsave('../report/plots/geneCount_correlationMatrix.png',
 testing
 ```{r}
 ggsave('../report/plots/test_plot.png',
-       plot = sgRNA_pca_plot)
+       plot = sgRNA_corr_plot)
+```
+```{r}
+test_sample <- 'transE-Medium_S46_L005'
+
+nchar(test_sample)
 ```
 

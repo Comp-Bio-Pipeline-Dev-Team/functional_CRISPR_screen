@@ -10,10 +10,10 @@ create_my_envs () {
         done
 }
 
-env_path_list=("workflow/envs/fastqc_env.yml" 
+env_path_list=("workflow/envs/fastqc_env.yml"
 "workflow/envs/multiqc_env.yml" 
 "workflow/envs/cutadapt_env.yml" 
-"workflow/envs/bowtie_env.yml" 
+"workflow/envs/bowtie_env.yml"
 "workflow/envs/bbmap_env.yml"
 "workflow/envs/r_env.yml")
 
