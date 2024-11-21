@@ -138,21 +138,21 @@ transform_counts_plot <- transform_count_res$TransformCountPlot
 ggsave(args$total_count_pdf_fp,
        plot = total_counts_plot,
        width = 9.5,
-       height = 5)
+       height = 7)
 ggsave(args$trans_count_pdf_fp,
        plot = transform_counts_plot,
        width = 9.5,
-       height = 5)
+       height = 7)
 
 ## plots - png
 ggsave(args$total_count_png_fp,
        plot = total_counts_plot,
        width = 9.5,
-       height = 5)
+       height = 7)
 ggsave(args$trans_count_png_fp,
        plot = transform_counts_plot,
        width = 9.5,
-       height = 5)
+       height = 7)
 
 ## result files 
 write_tsv(total_counts_table,

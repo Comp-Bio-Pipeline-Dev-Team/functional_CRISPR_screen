@@ -1,3 +1,1 @@
-## not sure how to link this with environmental variables in my workflow 
-## use bash to write the _variables.yml file - printf "bowtie_mismatches: 0"
 bowtie_mismatches: 0

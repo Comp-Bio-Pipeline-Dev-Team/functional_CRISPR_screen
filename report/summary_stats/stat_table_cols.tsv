@@ -1,1 +1,1 @@
-sampleid	num_reads_seq	reads_with_vector	reads_with_noVector	reads_mapped_sgRNA	total_sgRNA	sgRNA_moreThan_10
+sampleid	num_reads_seq	reads_with_vector	reads_with_noVector	reads_mapped_sgRNA	reads_notMapped_sgRNA	reads_suppMapped_sgRNA	total_sgRNA	sgRNA_moreThan_10

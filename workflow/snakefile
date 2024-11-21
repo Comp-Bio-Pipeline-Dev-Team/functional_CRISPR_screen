@@ -332,6 +332,7 @@ rule run_correlation:
 rule assemble_stat_table:
     input:
         raw_file = os.path.join(RAW_SEQ_IN, "{sample_prefix}_R1_001.fastq.gz"),
+        index_fasta_file = "reference_data/int/human_crispr_knockout_pooled_library_brunello.fasta",
         trimmed_file = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz",
         untrimmed_file = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz",
         bowtie_log = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.log",
@@ -342,23 +343,37 @@ rule assemble_stat_table:
         samples = lambda wc: wc.get("sample_prefix")
     shell:
         """
+        percent=$(printf '%%')
+        left_paren=$(printf '(')
+        right_paren=$(printf ')')
+        tab=$(printf '\t')
+        library_sgRNAs=$(grep "^>" {input.index_fasta_file} | wc -l)
+
         sampleid={params.samples}
 
-        total_num_reads=$(awk 'END{{print NR/4}}' {input.raw_file})
+        total_num_reads=$(gzcat {input.raw_file} | awk 'END{{print NR/4}}')
 
-        reads_with_vector=$(awk 'END{{print NR/4}}' {input.trimmed_file})
+        reads_with_vector_num=$(gzcat {input.trimmed_file} | awk 'END{{print NR/4}}')
+        reads_with_vector_perc=$(echo "scale=2; ($reads_with_vector_num/$total_num_reads)*100" | bc -l)
+        reads_with_vector=$(echo $reads_with_vector_num $left_paren$reads_with_vector_perc$percent$right_paren)
 
-        reads_with_noVector=$(awk 'END{{print NR/4}}' {input.untrimmed_file})
+        reads_with_noVector_num=$(gzcat {input.untrimmed_file} | awk 'END{{print NR/4}}')
+        reads_with_noVector_perc=$(echo "scale=4; ($reads_with_noVector_num/$total_num_reads)*100" | bc -l)
+        reads_with_noVector=$(echo $reads_with_noVector_num $left_paren$reads_with_noVector_perc$percent$right_paren)
 
         reads_mapped_sgRNA=$(grep "reads with at least one alignment:" {input.bowtie_log} | sed 's/# reads with at least one alignment: //g')
+        reads_notMapped_sgRNA=$(grep "reads that failed to align:" {input.bowtie_log} | sed 's/# reads that failed to align: //g')
+        reads_suppMapped_sgRNA=$(grep "reads with alignments suppressed due to -m:" {input.bowtie_log} | sed 's/# reads with alignments suppressed due to -m: //g')
 
-        total_sgRNA=$(awk '$7 != 0 {{print $7}}' {input.counts_file} | wc -l)
+        total_sgRNA_num=$(awk '$7 != 0 {{print $7}}' {input.counts_file} | wc -l)
+        total_sgRNA_perc=$(echo "scale=2; ($total_sgRNA_num/$library_sgRNAs)*100" | bc -l)
+        total_sgRNA=$(echo $total_sgRNA_num $left_paren$total_sgRNA_perc$percent$right_paren)
 
-        sgRNA_moreThan_10=$(awk -F "\t" '{{ if ($7 >= 10) {{print $7}} }}' {input.counts_file} | wc -l)
+        sgRNA_moreThan_10_num=$(awk '$7 >= 10 {{print $7}}' {input.counts_file} | wc -l)
+        sgRNA_moreThan_10_perc=$(echo "scale=2; ($sgRNA_moreThan_10_num/$library_sgRNAs)*100" | bc -l)
+        sgRNA_moreThan_10=$(echo $sgRNA_moreThan_10_num $left_paren$sgRNA_moreThan_10_perc$percent$right_paren)
 
-        tab=$(printf '\t')
-
-        echo "$sampleid$tab$total_num_reads$tab$reads_with_vector$tab$reads_with_noVector$tab$reads_mapped_sgRNA$tab$total_sgRNA$tab$sgRNA_moreThan_10" > {output.sample_stat_out}
+        echo "$sampleid$tab$total_num_reads$tab$reads_with_vector$tab$reads_with_noVector$tab$reads_mapped_sgRNA$tab$reads_notMapped_sgRNA$tab$reads_suppMapped_sgRNA$tab$total_sgRNA$tab$sgRNA_moreThan_10" > {output.sample_stat_out}
         """
 
 
@@ -373,6 +388,7 @@ rule combine_stat_table:
         """
         cat {input.cols_in} {input.test_in} > {output.combined_stat_out}
         """
+
 
 ## need to test this..i'm not sure how its going to go 
 rule render_report:
@@ -398,4 +414,4 @@ rule render_report:
         printf "bowtie_mismatches: {params.bowtie_mismatches}" > {params.report_vars}
 
         quarto render {input.report_doc}
-        """       
+        """ 
