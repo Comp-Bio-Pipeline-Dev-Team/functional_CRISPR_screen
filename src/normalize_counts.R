@@ -55,8 +55,8 @@ normalize_table <- function(comb_table,
   
   ## selected the Plus_reads column
   ## taking the tibble from long to wide format w the sampleids as the columns
-  comb_table_wide_df <- comb_table %>% 
-    select(.data[[id_col]], .data[[reads_col]], sampleid) %>% 
+  comb_table_wide_df <- comb_table %>%
+    select(all_of(id_col), all_of(reads_col), sampleid) %>% 
     spread(sampleid, .data[[reads_col]]) %>% 
     remove_rownames() %>% 
     column_to_rownames(var = id_col)

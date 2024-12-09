@@ -6,8 +6,8 @@ format:
     #css: styles.css
     embed-resources: true
     smooth-scroll: true
-  pdf:
-    mainfont: "Helvetica Neue"
+  ##pdf:
+    ##mainfont: "Helvetica Neue"
 
 
 editor: visual

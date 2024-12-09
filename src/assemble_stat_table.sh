@@ -7,7 +7,7 @@
 printf "sampleid\tnum_reads_seq\treads_with_vector\treads_with_noVector\treads_mapped_sgRNA\treads_notMapped_sgRNA\treads_suppMapped_sgRNA\ttotal_sgRNA\tsgRNA_moreThan_10\n" > ../report/summary_stats/stat_table_cols.tsv
 
 ##percent sign for below
-percent=$(printf '%%\n')
+percent=$(printf '%%')
 ## parentheses to put around percent
 left_paren=$(printf '(')
 right_paren=$(printf ')')
@@ -25,7 +25,7 @@ echo ${total_num_reads}
 ## 2 - reads containing a vector 
 ## number of lines in cutadapt TRIMMED fastq divided by four
 reads_with_vector_num=$(gzcat ../crispr_screen_out/cutadapt_outputs/transE-High_S47_L005_trimmed.fastq.gz | awk 'END{print NR/4}')
-reads_with_vector_perc=$(echo "scale=2; ($reads_with_vector_num/$total_num_reads)*100" | bc -l)
+reads_with_vector_perc=$(echo "($reads_with_vector_num/$total_num_reads)*100" | bc -l | xargs printf "%.2f")
 reads_with_vector=$(echo $reads_with_vector_num $left_paren$reads_with_vector_perc$percent$right_paren)
 echo ${reads_with_vector}
 
@@ -33,7 +33,7 @@ echo ${reads_with_vector}
 ## number of lines in cutadapt UNTRIMMED fastq file divided by four
 ## this is a really small decimal so scale=4 instead of 2 so its not just zero 
 reads_with_noVector_num=$(gzcat ../crispr_screen_out/cutadapt_outputs/transE-High_S47_L005_untrimmed.fastq.gz | awk 'END{print NR/4}')
-reads_with_noVector_perc=$(echo "scale=4; ($reads_with_noVector_num/$total_num_reads)*100" | bc -l)
+reads_with_noVector_perc=$(echo "($reads_with_noVector_num/$total_num_reads)*100" | bc -l | xargs printf "%.2f")
 reads_with_noVector=$(echo $reads_with_noVector_num $left_paren$reads_with_noVector_perc$percent$right_paren)
 echo ${reads_with_noVector}
 
@@ -58,14 +58,14 @@ library_sgRNAs=$(grep "^>" ../reference_data/int/human_crispr_knockout_pooled_li
 ## 7 - total sgRNAs represented
 ## total number of unique guides with at least one read count detected (from counts file) - this one is right!
 total_sgRNA_num=$(awk '$7 != 0 {print $7}' ../crispr_screen_out/count_output/transE-High_S47_L005_counts_final.txt | wc -l)
-total_sgRNA_perc=$(echo "scale=2; ($total_sgRNA_num/$library_sgRNAs)*100" | bc -l)
+total_sgRNA_perc=$(echo "($total_sgRNA_num/$library_sgRNAs)*100" | bc -l | xargs printf "%.2f")
 total_sgRNA=$(echo $total_sgRNA_num $left_paren$total_sgRNA_perc$percent$right_paren)
 echo ${total_sgRNA}
 
 ## 8 - total sgRNAs represented with more than 10 reads 
 ## idk why this awk command isn't working (i was referencing the wrong column whoops)
 sgRNA_moreThan_10_num=$(awk '$7 >= 10 {print $7}' ../crispr_screen_out/count_output/transE-High_S47_L005_counts_final.txt | wc -l)
-sgRNA_moreThan_10_perc=$(echo "scale=2; ($sgRNA_moreThan_10_num/$library_sgRNAs)*100" | bc -l)
+sgRNA_moreThan_10_perc=$(echo "($sgRNA_moreThan_10_num/$library_sgRNAs)*100" | bc -l | xargs printf "%.2f")
 sgRNA_moreThan_10=$(echo $sgRNA_moreThan_10_num $left_paren$sgRNA_moreThan_10_perc$percent$right_paren)
 echo ${sgRNA_moreThan_10}
 

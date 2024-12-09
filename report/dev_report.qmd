@@ -3,7 +3,7 @@ title: "test summary report"
 date: last-modified
 format:
     html: default
-    pdf: default
+    ##pdf: default
 editor: 
     render-on-save: true
 ---
@@ -34,27 +34,31 @@ new_cols <- c('Sample ID',
 'Reads Not Aligned to sgRNA',
 'Reads with Alignments Suppressed',
 'Total sgRNA Represented',
-'sgRNA above 10 Reads')
+'sgRNA > 10 Reads')
 
 colnames(summary_table) <- new_cols
 
 kable(summary_table, align='lcccccccc')
 ```
 
-| Column                           | Explanation                                                                                                                                                          |
+| Column                           | Explanation                                                                                                                                                              |
 |------------------------------------|------------------------------------|
-| Total Reads Sequenced            | Total number of reads sequenced in your sample.                                                                                                                      |
-| Reads with Vector                | Total number of reads containing the vector sequence. This is the number of reads used for alignment.                                                                |
-| Reads without Vector             | Total number of reads where the vector sequence was not detected and therefore not considered for sgRNA mapping. These reads are not included in the alignment step. |
-| Reads Aligned to sgRNA           | Total number of reads that contained vector sequence that had a read mapping to a sgRNA at the set mismatch rate of {{< var bowtie_mismatches >}}.                   |
-| Reads Not Aligned to sgRNA       | text goes here! :)                                                                                                                                                   |
-| Reads with Alignments Suppressed | text goes here! :)                                                                                                                                                   |
-| Total sgRNA Represented          | The total number of unique guides with at least 1 read count detected. Percentage is based upon fasta of guide library used as the reference.                        |
-| sgRNA above 10 Reads             | The total number of unique guides with at least 10 read counts detected. Percentage is based upon fasta of guide library used as the reference.                      |
+| Total Reads Sequenced            | Total number of reads sequenced in your sample.                                                                                                                          |
+| Reads with Vector                | Total number of reads containing the vector sequence. This is the number of reads used for alignment.                                                                    |
+| Reads without Vector             | Total number of reads where the vector sequence was not detected and therefore not considered for sgRNA mapping. These reads are not included in the alignment step.     |
+| Reads Aligned to sgRNA           | Total number of reads that contained a vector sequence that had a read aligning to a sgRNA at the set mismatch rate of {{< var bowtie_mismatches >}}.                    |
+| Reads Not Aligned to sgRNA       | Total number of reads that contained a vector sequence where the vector sequence **did not** align to a sgRNA at the set mismatch rate of {{< var bowtie_mismatches >}}. |
+| Reads with Alignments Suppressed | Total number of reads that contained a vector sequence that aligned more than once to a sgRNA. We want to guarantee that all reported alignments to a sgRNA are unique.  |
+| Total sgRNA Represented          | The total number of unique guides with at least 1 read count detected. Percentage is based upon fasta of guide library used as the reference.                            |
+| sgRNA \> 10 Reads                | The total number of unique guides with at least 10 read counts detected. Percentage is based upon fasta of guide library used as the reference.                          |
 
 : summary table explained {tbl-colwidths="\[25,75\]".striped}
 
 # what we do
+
+note: for the workflow .png to render in a non-blurry format you'll need to save it to the exact px dimensions that you want it to be in for the html (so this file). right now it's; w: 2850 px, h: 5827 px, dpi: 657.24.
+
+![](plots/workflow_flowchart.png){width="2850"}
 
 (workflow overview)
 
@@ -99,7 +103,7 @@ here's a little info on the pca analysis done and the two outputs! looking at th
 
 ![sgRNA Count PCA plot](plots/sgRNACount_PCA_plot.png) we did this using all of the guide RNA sequences
 
-![Gene Count PCA plot](plots/geneCount_PCA_plot.png) and the invidiual genes
+![Gene Count PCA plot](plots/geneCount_PCA_plot.png) and the individual genes
 
 ## correlation analysis
 

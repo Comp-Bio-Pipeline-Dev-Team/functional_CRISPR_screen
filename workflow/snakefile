@@ -75,8 +75,8 @@ rule all:
         expand("report/summary_stats/{sample_prefix}_overall_stats.tsv",
                 sample_prefix=SAMPLE_PREFIX),
         "report/summary_stats/summary_stat_table.tsv",
-        "report/dev_report.html",
-        "report/dev_report.pdf"
+        "report/dev_report.html"
+        ##"report/dev_report.pdf"
         
 
 
@@ -354,11 +354,11 @@ rule assemble_stat_table:
         total_num_reads=$(gzcat {input.raw_file} | awk 'END{{print NR/4}}')
 
         reads_with_vector_num=$(gzcat {input.trimmed_file} | awk 'END{{print NR/4}}')
-        reads_with_vector_perc=$(echo "scale=2; ($reads_with_vector_num/$total_num_reads)*100" | bc -l)
+        reads_with_vector_perc=$(echo "($reads_with_vector_num/$total_num_reads)*100" | bc -l | xargs printf "%.2f")
         reads_with_vector=$(echo $reads_with_vector_num $left_paren$reads_with_vector_perc$percent$right_paren)
 
         reads_with_noVector_num=$(gzcat {input.untrimmed_file} | awk 'END{{print NR/4}}')
-        reads_with_noVector_perc=$(echo "scale=4; ($reads_with_noVector_num/$total_num_reads)*100" | bc -l)
+        reads_with_noVector_perc=$(echo "($reads_with_noVector_num/$total_num_reads)*100" | bc -l | xargs printf "%.2f")
         reads_with_noVector=$(echo $reads_with_noVector_num $left_paren$reads_with_noVector_perc$percent$right_paren)
 
         reads_mapped_sgRNA=$(grep "reads with at least one alignment:" {input.bowtie_log} | sed 's/# reads with at least one alignment: //g')
@@ -366,11 +366,11 @@ rule assemble_stat_table:
         reads_suppMapped_sgRNA=$(grep "reads with alignments suppressed due to -m:" {input.bowtie_log} | sed 's/# reads with alignments suppressed due to -m: //g')
 
         total_sgRNA_num=$(awk '$7 != 0 {{print $7}}' {input.counts_file} | wc -l)
-        total_sgRNA_perc=$(echo "scale=2; ($total_sgRNA_num/$library_sgRNAs)*100" | bc -l)
+        total_sgRNA_perc=$(echo "($total_sgRNA_num/$library_sgRNAs)*100" | bc -l | xargs printf "%.2f")
         total_sgRNA=$(echo $total_sgRNA_num $left_paren$total_sgRNA_perc$percent$right_paren)
 
         sgRNA_moreThan_10_num=$(awk '$7 >= 10 {{print $7}}' {input.counts_file} | wc -l)
-        sgRNA_moreThan_10_perc=$(echo "scale=2; ($sgRNA_moreThan_10_num/$library_sgRNAs)*100" | bc -l)
+        sgRNA_moreThan_10_perc=$(echo "($sgRNA_moreThan_10_num/$library_sgRNAs)*100" | bc -l | xargs printf "%.2f")
         sgRNA_moreThan_10=$(echo $sgRNA_moreThan_10_num $left_paren$sgRNA_moreThan_10_perc$percent$right_paren)
 
         echo "$sampleid$tab$total_num_reads$tab$reads_with_vector$tab$reads_with_noVector$tab$reads_mapped_sgRNA$tab$reads_notMapped_sgRNA$tab$reads_suppMapped_sgRNA$tab$total_sgRNA$tab$sgRNA_moreThan_10" > {output.sample_stat_out}
@@ -380,13 +380,13 @@ rule assemble_stat_table:
 rule combine_stat_table:
     input:
         cols_in = "report/summary_stats/stat_table_cols.tsv",
-        test_in = expand("report/summary_stats/{sample_prefix}_overall_stats.tsv",
-                         sample_prefix=SAMPLE_PREFIX)
+        samples_in = expand("report/summary_stats/{sample_prefix}_overall_stats.tsv",
+                            sample_prefix=SAMPLE_PREFIX)
     output:
         combined_stat_out = "report/summary_stats/summary_stat_table.tsv"
     shell:
         """
-        cat {input.cols_in} {input.test_in} > {output.combined_stat_out}
+        cat {input.cols_in} {input.samples_in} > {output.combined_stat_out}
         """
 
 
@@ -402,8 +402,8 @@ rule render_report:
         combined_stat_table = "report/summary_stats/summary_stat_table.tsv",
         report_doc = "report/dev_report.qmd"
     output:
-        report_html = "report/dev_report.html",
-        report_pdf = "report/dev_report.pdf"
+        report_html = "report/dev_report.html"
+        ##report_pdf = "report/dev_report.pdf"
     conda:
         R_ENV
     params:
