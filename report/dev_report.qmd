@@ -8,7 +8,7 @@ editor:
     render-on-save: true
 ---
 
-# so you've run a CRISPR functional screen..but what does it mean??
+# so you've run a CRISPR functional screen but what does it mean?
 
 this will be some fun text about the crispr functional screen (but they should) already know what's up
 
@@ -42,7 +42,7 @@ kable(summary_table, align='lcccccccc')
 ```
 
 | Column                           | Explanation                                                                                                                                                              |
-|------------------------------------|------------------------------------|
+|--------------------|----------------------------------------------------|
 | Total Reads Sequenced            | Total number of reads sequenced in your sample.                                                                                                                          |
 | Reads with Vector                | Total number of reads containing the vector sequence. This is the number of reads used for alignment.                                                                    |
 | Reads without Vector             | Total number of reads where the vector sequence was not detected and therefore not considered for sgRNA mapping. These reads are not included in the alignment step.     |
@@ -56,34 +56,25 @@ kable(summary_table, align='lcccccccc')
 
 # what we do
 
-note: for the workflow .png to render in a non-blurry format you'll need to save it to the exact px dimensions that you want it to be in for the html (so this file). right now it's; w: 2850 px, h: 5827 px, dpi: 657.24.
+(workflow overview)
+
+note: for the workflow .png to render in a non-blurry format you'll need to save it to the exact px dimensions that you want it to be in for the html (so this file). right now it's; w: 2850 px, h: 2311 px, dpi: 688.27.
 
 ![](plots/workflow_flowchart.png){width="2850"}
 
-(workflow overview)
+| Workflow Step                            | Why we do this                                                                                                                                                                              |
+|-------------------|-----------------------------------------------------|
+| 1: Quality Check                         | Done to assess the overall quality of the sequences we received prior to additional analysis.                                                                                               |
+| 2: Raw Sequence Prep (trimming)          | To trim all found sequences from the 5' end to 20 base pairs (bp) in length based on the vector sequence of the library that was used. All sgRNA sequences should be about 20 bp in length. |
+| 3: Sequence Alignment                    | To map the trimmed sgRNA sequences to the associated library that they were prepped with to see which sgRNA sequences are present.                                                          |
+| 4: Counting sgRNA Sequences              | To count how many sgRNA sequences and genes mapped to the sgRNA index for each sample.                                                                                                      |
+| 5: Combining sgRNA Count Files           | To combine the sgRNA count data for each sample into one file for downstream R comparison analysis.                                                                                         |
+| 6: Normalizing Combined sgRNA Count File | To generate all needed files to perform PCA, total/transformed count, and correlation R analysis. sgRNA and gene count data are normalized to counts per million (CPM).                     |
+| 7: PCA Analysis                          | Plotted at the sgRNA and gene level to see if biological replicates cluster together as they should.                                                                                        |
+| 8: Total/Transformed Count Comparison    | Plotted at the sgRNA and gene level to ensure that biological replicates have about the same distribution of counts.                                                                        |
+| 9: Correlation Comparison                | Plotted at the sgRNA and gene level to ensure that biological group replicates correlate more closely with each other than replicates in a different biological group.                      |
 
-1.  **FASTQC and MultiQC**\
-    Starting out, we check the quality of the FASTQs we recieve along with the sequences themselves.
-
-    **Key considerations:**
-
-    -   Are the sequences properly positioned on the sense strand or are they reverse complemented?
-
-    -   Is the sgRNA position staggered or not staggered? Staggering sgRNAs increases library complexity and provides the sequencer with greater diversity.
-
-    -   What is the plasmid/vector sequences on the 5' end? This is library specific and will change depending on which sgRNA library you prepped your samples with.
-
-2.  **Cutadapt**\
-    We then use Cutadapt to trim the plasmid/vector sequence from the 5' end (this is the same sequence that we identified in the previous step based on the library used).
-
-3.  **Bowtie1**\
-    We use Bowtie1 to build an index of sgRNA library sequences to align to your FASTA sequences. In this same step we perform the alignment.
-
-4.  **BBMap**\
-    BBMap can be used to count the number of reads per sample that aligned to the sgRNA index on per sequence and gene basis.
-
-5.  **R Analysis**\
-    We then move the counts of reads per sample to R and look at total/transformed reads per sample, sample PCA clustering, and correlation analysis. This is to verify that the results look similar across samples in different biological groups and that your set of experiments was successful.
+: workflow diagram explained {tbl-colwidths="\[25,75\]".striped}
 
 # plots
 
@@ -93,25 +84,49 @@ this is my attempt at pulling a plot in. update: plots need to be in .png format
 
 here's info on why we looked at total and transformed counts sgRNA guide sequences overall (there isn't a separate one for individual genes since they both add up to the same number).
 
-![Total Counts](plots/sample_totalCount_plot.png) total counts of guide sequences per biological group
+### total counts
 
-![log2(Transformed Counts)](plots/sample_transCounts_plot.png) log2() transformed counts of guide sequences per biological group **(why are we doing this??)**
+total counts of guide sequences per biological group
+
+![Total Count Plot](plots/sample_totalCount_plot.png)
+
+### transformed counts 
+
+log2() transformed counts of guide sequences per biological group **(why are we doing this??)**
+
+![log2(Total Count Plot)](plots/sample_transCounts_plot.png)
 
 ## pca analysis
 
 here's a little info on the pca analysis done and the two outputs! looking at the clustering of biological replicates via principal components analysis. we should expect replicates in the same biological group to cluster together (this is not a good example).
 
-![sgRNA Count PCA plot](plots/sgRNACount_PCA_plot.png) we did this using all of the guide RNA sequences
+### sgRNA count PCA
 
-![Gene Count PCA plot](plots/geneCount_PCA_plot.png) and the individual genes
+we did this using all of the guide RNA sequences
+
+![sgRNA Count PCA plot](plots/sgRNACount_PCA_plot.png)
+
+### gene count PCA
+
+this was done using the individual genes
+
+![Gene Count PCA plot](plots/geneCount_PCA_plot.png)
 
 ## correlation analysis
 
 here's info on why we did correlation analysis on the different biological groups! we wanted to make sure that all replicates in a biological group correlate more closely with each other than other biological groups (i.e. we want a correlation value closer to 1). positive correlations will be deeper blue and negative correlations will be deeper red.
 
-![sgRNA Count Correlation Plot](plots/sgRNACount_correlationMatrix.png) we did this for all guide RNA sequences
+### sgRNA correlation comparisons
 
-![Gene Count Correlation Plot](plots/geneCount_correlationMatrix.png) and all individual genes
+we did this for all sgRNA sequences
+
+![sgRNA Count Correlation Plot](plots/sgRNACount_correlationMatrix.png)
+
+### gene correlation comparisons
+
+this was done using the individual genes
+
+![Gene Count Correlation Plot](plots/geneCount_correlationMatrix.png)
 
 # contact information
 

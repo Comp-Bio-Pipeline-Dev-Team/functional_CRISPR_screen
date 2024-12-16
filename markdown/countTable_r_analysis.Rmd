@@ -239,7 +239,7 @@ run_correlation <- function(wide_count_df,
           legend.ticks = element_blank(),
           # legend.text = element_text(size = legend_text_size),
           legend.title = element_blank(),
-          legend.key.height = unit(legend_bar_height, 'in'),
+          legend.key.height = unit(legend_bar_height, 'null'),
           legend.key.width = unit(10, 'pt'),
           legend.box.spacing = unit(legend_box_spacing, 'cm'),
           legend.location = "align",
@@ -455,13 +455,14 @@ for sgRNA ids
 ```{r, fig.width=9, fig.height=9}
 plot_width <- length(unique(meta$sampleid))/2
 plot_height <- length(unique(meta$sampleid))/2
+##(0.19 * 5) + 0.03
 
 sgRNA_corr_res <- run_correlation(wide_count_df = test_sgRNA_wide,
                                   corr_method = 'spearman',
                                   text_size = 3,
                                   panel_width = 5,
                                   panel_height = 5,
-                                  legend_bar_height = (0.19 * 5) + 0.03,
+                                  legend_bar_height = 1,
                                   legend_text_size = 8,
                                   legend_box_spacing = 0)
 
