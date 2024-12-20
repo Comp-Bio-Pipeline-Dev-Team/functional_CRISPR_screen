@@ -14,6 +14,11 @@ parser$add_argument("-c",
                     "--comb_count_table",
                     dest = "comb_table_fp",
                     help = "Filepath to combined counts table file in .tsv format.")
+parser$add_argument("-m",
+                    "--metadata",
+                    dest = "metadata_fp",
+                    help = "Filepath to metadata file in .csv format. 
+                    Must have columns named 'sampleid' and 'biological_group'.")
 parser$add_argument("-l",
                     "--comb_countLong_out",
                     dest = "comb_countLong_fp",
@@ -41,7 +46,8 @@ args <- parser$parse_args()
 ## takes the combined counts table from long to wide format and normalizes it by cpm 
 ## we only need the plus read columns !!
 normalize_table <- function(comb_table,
-                            id_col){
+                            id_col,
+                            sample_order){
   
   if (id_col == 'gene_id') {
     comb_table <- comb_table %>% 
@@ -58,6 +64,7 @@ normalize_table <- function(comb_table,
   comb_table_wide_df <- comb_table %>%
     select(all_of(id_col), all_of(reads_col), sampleid) %>% 
     spread(sampleid, .data[[reads_col]]) %>% 
+    select(all_of(id_col), all_of(sample_order)) %>% 
     remove_rownames() %>% 
     column_to_rownames(var = id_col)
   
@@ -90,16 +97,25 @@ comb_counts <- comb_table %>%
                        cols_remove = FALSE,
                        too_many = 'drop')
 
+## metadata
+metadata <- read_csv(args$metadata_fp)
+metadata <- metadata %>% 
+  arrange(biological_group)
+
+meta_sample_order <- unique(unlist(metadata$sampleid))
+
 ## normalization for sgRNA ids
 sgCount_table_out <- normalize_table(comb_table = comb_counts,
-                                     id_col = 'sgRNA_id')
+                                     id_col = 'sgRNA_id',
+                                     sample_order = meta_sample_order)
 
 sgRNA_combCounts_wide_df <- sgCount_table_out$NonNormTable
 sgRNAnorm_combCounts_df <- sgCount_table_out$NormTable
 
 ## normalization for gene ids
 geneCount_table_out <- normalize_table(comb_table = comb_counts,
-                                       id_col = 'gene_id')
+                                       id_col = 'gene_id',
+                                       sample_order = meta_sample_order)
 
 gene_combCounts_wide_df <- geneCount_table_out$NonNormTable
 geneNorm_combCounts_df <- geneCount_table_out$NormTable

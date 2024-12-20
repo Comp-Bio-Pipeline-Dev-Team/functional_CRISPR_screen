@@ -3,13 +3,14 @@ import os
 
 ## ----USER PROVIDED INPUTS----
 ## via the config paramter in run_snakemake.sh
-sample_id_file = pd.read_csv(config["sample_id_file"])
-SAMPLE_PREFIX = sample_id_file["sampleid"]
+metadata_csv = pd.read_csv(config["metadata_file"])
+SAMPLE_PREFIX = metadata_csv["sampleid"]
 print(SAMPLE_PREFIX)
 
 RAW_SEQ_IN = config["raw_seq_in"]
 BOWTIE_INDEX = config["crispr_sg_index"]
 BOWTIE_MISMATCHES = config["bowtie_mismatches"]
+METADATA = config["metadata_file"]
 
 ## ----CUTADAPT VECTOR VARIABLES----
 VECTOR_BP = "TTGTGGAAAGGACGAAACACCG" 
@@ -234,7 +235,8 @@ rule prep_count_files:
 ## THE START OF R ANALYSIS
 rule normalize_counts:
     input:
-        comb_count_table = "crispr_screen_out/count_output/allSample_counts.tsv"
+        comb_count_table = "crispr_screen_out/count_output/allSample_counts.tsv",
+        metadata_file = METADATA
     output:
         comb_countLong_out = "crispr_screen_out/count_output/allSample_counts_long.tsv",
         sgRNA_counts_wide = "crispr_screen_out/count_output/allSample_sgRNAcounts_wide.tsv",
@@ -246,6 +248,7 @@ rule normalize_counts:
     shell:
         """
         Rscript src/normalize_counts.R --comb_count_table {input.comb_count_table} \
+                                       --metadata {input.metadata_file} \
                                        --comb_countLong_out {output.comb_countLong_out} \
                                        --sgRNA_counts_wide {output.sgRNA_counts_wide} \
                                        --norm_sgRNA_counts {output.norm_sgRNA_counts} \
@@ -255,6 +258,7 @@ rule normalize_counts:
 
 rule run_pca:
     input:
+        metadata_file = METADATA,
         norm_sgRNA_counts = "crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv",
         norm_gene_counts = "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv"
     output:
@@ -268,7 +272,8 @@ rule run_pca:
         R_ENV
     shell:
         """
-        Rscript src/run_pca.R --norm_sgRNA_counts {input.norm_sgRNA_counts} \
+        Rscript src/run_pca.R --metadata {input.metadata_file} \
+                              --norm_sgRNA_counts {input.norm_sgRNA_counts} \
                               --norm_gene_counts {input.norm_gene_counts} \
                               --sgRNA_PCA_pdf {output.sgRNA_PCA_pdf} \
                               --sgRNA_PCA_png {output.sgRNA_PCA_png} \
@@ -281,7 +286,8 @@ rule run_pca:
 
 rule run_total_transform_counts:
     input:
-        comb_countLong_table = "crispr_screen_out/count_output/allSample_counts_long.tsv"
+        comb_countLong_table = "crispr_screen_out/count_output/allSample_counts_long.tsv",
+        metadata_file = METADATA
     output:
         total_count_pdf = "crispr_screen_out/plots/sample_totalCount_plot.pdf",
         total_count_png = "report/plots/sample_totalCount_plot.png",
@@ -294,6 +300,7 @@ rule run_total_transform_counts:
     shell:
         """
         Rscript src/run_totalTransform_counts.R --comb_countLong_table {input.comb_countLong_table} \
+                                                --metadata {input.metadata_file} \
                                                 --total_count_pdf {output.total_count_pdf} \
                                                 --total_count_png {output.total_count_png} \
                                                 --trans_count_pdf {output.trans_count_pdf} \
@@ -327,6 +334,7 @@ rule run_correlation:
                                       --sgRNA_corr_table {output.sgRNA_corr_table} \
                                       --gene_corr_table {output.gene_corr_table}
         """
+
 
 ## THINGS NEEDED FOR REPORT GENERATION
 rule assemble_stat_table:

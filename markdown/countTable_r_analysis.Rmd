@@ -37,7 +37,8 @@ add_sampleid <- function(filepath,
 ## takes the combined counts table from long to wide format and normalizes it by cpm 
 ## we only need the plus read columns !!
 normalize_table <- function(comb_table,
-                            id_col){
+                            id_col,
+                            sample_order){
   
   if (id_col == 'gene_id') {
     comb_table <- comb_table %>% 
@@ -54,6 +55,7 @@ normalize_table <- function(comb_table,
   comb_table_wide_df <- comb_table %>% 
                           select(all_of(id_col), all_of(reads_col), sampleid) %>% 
                           spread(sampleid, .data[[reads_col]]) %>% 
+                          select(all_of(id_col), all_of(sample_order)) %>% 
                           remove_rownames() %>% 
                           column_to_rownames(var = id_col)
   
@@ -140,6 +142,9 @@ run_total_counts <- function(comb_table,
     summarize(total_counts = sum(Plus_reads)) %>% 
     left_join(metadata_df, by = sample_col) 
   
+  ## to reorder the x axis so all bio reps are next to each other
+  x_axis_order <- unique(unlist(metadata_df[sample_col]))
+  
   ## building total counts plot
   total_counts_plot <- total_counts_table %>% 
     ggplot(aes(x = .data[[sample_col]], y = total_counts)) +
@@ -147,6 +152,7 @@ run_total_counts <- function(comb_table,
              stat = 'identity', 
              color = 'black', 
              alpha = bar_alpha) +
+    scale_x_discrete(limits = factor(x_axis_order)) +
     theme_bw(base_size = 20) +
     scale_fill_brewer(palette = brewer_palette,
                       name = legend_title) +
@@ -177,11 +183,15 @@ run_transform_counts <- function(comb_table,
     mutate(log2_counts = log2(Plus_reads)) %>% 
     left_join(metadata_df, by = sample_col)
   
+  ## to reorder the x axis so all bio reps are next to each other
+  x_axis_order <- unique(unlist(metadata_df[sample_col]))
+  
   ## plot 
   transform_count_plot <- transform_count_table %>% 
     ggplot(aes(x = .data[[sample_col]], y = log2_counts)) +
     geom_boxplot(aes(group = .data[[sample_col]]), width = 0.5, color = 'black') +
     geom_violin(aes(fill = .data[[fill_by_col]]), color = 'black', alpha = bar_alpha) +
+    scale_x_discrete(limits = x_axis_order) +
     theme_bw(base_size = 20) +
     scale_fill_brewer(palette = brewer_palette,
                       name = legend_title) +
@@ -200,8 +210,8 @@ run_transform_counts <- function(comb_table,
 run_correlation <- function(wide_count_df,
                             corr_method,
                             text_size,
-                            panel_width,
-                            panel_height,
+                            panel_width = NULL,
+                            panel_height = NULL,
                             legend_bar_height,
                             legend_text_size,
                             legend_box_spacing){
@@ -217,17 +227,17 @@ run_correlation <- function(wide_count_df,
   corr_plot <- proc_corr_matrix %>% 
     ggplot(aes(x = group1, y = group2)) +
     geom_tile(color = 'black', fill = 'white') +
-    theme_bw() +
+    theme_bw(base_size = 20) +
     geom_text(aes(label = round(corr_value, digits = 2), color = corr_value), 
-              # size = text_size, 
+              size = text_size,
               fontface = 'bold') +
     scale_color_gradientn(colors = hcl.colors(200, 'RdBu'),
                           limits = c(-1, 1),
                           breaks = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1),
                           labels = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1)) +
     scale_x_discrete(position = 'top') +
-    force_panelsizes(rows = unit(panel_height, 'in'),
-                     cols = unit(panel_width, 'in')) +
+    # force_panelsizes(rows = unit(panel_height, 'in'),
+    #                  cols = unit(panel_width, 'in')) +
     theme(axis.text = element_text(color = 'red'),
           axis.ticks = element_blank(),
           axis.title = element_blank(),
@@ -237,7 +247,7 @@ run_correlation <- function(wide_count_df,
           axis.text.x = element_text(angle = 90, hjust = 0),
           legend.frame = element_rect(color = 'black', linetype = 'solid', linewidth = 0.25),
           legend.ticks = element_blank(),
-          # legend.text = element_text(size = legend_text_size),
+          legend.text = element_text(size = legend_text_size),
           legend.title = element_blank(),
           legend.key.height = unit(legend_bar_height, 'null'),
           legend.key.width = unit(10, 'pt'),
@@ -278,9 +288,17 @@ meta <- pre_meta %>%
                                    size = 4,
                                    replace = TRUE))
 
+# write_csv(meta, 
+#           '../metadata.csv')
+
+## arrange the bio reps in the metadata so they're all in order
+## use the new order of the sampleid column to put all bio reps next to each other
+# in the plots
+meta <- meta %>%
+  arrange(biological_group)
+
 meta
 ```
-
 
 ## **CPM normalization**
 **Combining all the count tables and normalizing them**
@@ -301,11 +319,20 @@ comb_counts <- comb_table %>%
 comb_counts
 ```
 
+```{r}
+meta_sample_order <- unique(unlist(meta$sampleid))
+
+normalize_table(comb_table = comb_counts,
+                id_col = 'sgRNA_id',
+                sample_order = meta_sample_order)
+```
+
 **Normalizing count tables**
 for sgRNA ids 
 ```{r}
 sgCount_table_out <- normalize_table(comb_table = comb_counts,
-                                     id_col = 'sgRNA_id')
+                                     id_col = 'sgRNA_id',
+                                     sample_order = meta_sample_order)
 
 sgRNA_combCounts_wide_df <- sgCount_table_out$NonNormTable
 sgRNAnorm_combCounts_df <- sgCount_table_out$NormTable
@@ -336,7 +363,8 @@ sgRNA_combCounts_wide_df %>%
 for individual genes
 ```{r}
 geneCount_table_out <- normalize_table(comb_table = comb_counts,
-                                       id_col = 'gene_id')
+                                       id_col = 'gene_id',
+                                       sample_order = meta_sample_order)
 
 gene_combCounts_wide_df <- geneCount_table_out$NonNormTable
 geneNorm_combCounts_df <- geneCount_table_out$NormTable
@@ -452,18 +480,18 @@ transform_counts_plot
 - to find the ideal ggsave plot dimensions: add 1 to the number of samples (maybe)
 
 for sgRNA ids
-```{r, fig.width=9, fig.height=9}
+```{r, fig.width=13, fig.height=11}
 plot_width <- length(unique(meta$sampleid))/2
 plot_height <- length(unique(meta$sampleid))/2
 ##(0.19 * 5) + 0.03
 
 sgRNA_corr_res <- run_correlation(wide_count_df = test_sgRNA_wide,
                                   corr_method = 'spearman',
-                                  text_size = 3,
-                                  panel_width = 5,
-                                  panel_height = 5,
+                                  text_size = 5,
+                                  # panel_width = 5,
+                                  # panel_height = 5,
                                   legend_bar_height = 1,
-                                  legend_text_size = 8,
+                                  legend_text_size = 12,
                                   legend_box_spacing = 0)
 
 sgRNA_corr_matrix <- sgRNA_corr_res$CorrMatrix
@@ -473,12 +501,13 @@ sgRNA_corr_plot
 ```
 
 for individual genes
-```{r, fig.width=8, fig.height=8}
+```{r, fig.width=11, fig.height=9}
 gene_corr_res <- run_correlation(wide_count_df = gene_combCounts_wide_df,
                                  corr_method = 'spearman',
                                  text_size = 5,
-                                 panel_width = 5,
-                                 panel_height = 5,
+                                 # panel_width = 4,
+                                 # panel_height = 4,
+                                 legend_bar_height = 1,
                                  legend_text_size = 12,
                                  legend_box_spacing = -0.1)
 

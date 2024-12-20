@@ -52,7 +52,7 @@ args <- parser$parse_args()
 run_correlation <- function(wide_count_df,
                             corr_method,
                             text_size,
-                            legend_barheight,
+                            legend_bar_height,
                             legend_text_size,
                             legend_box_spacing){
   ## running correlation analysis
@@ -69,14 +69,12 @@ run_correlation <- function(wide_count_df,
     geom_tile(color = 'black', fill = 'white') +
     theme_bw(base_size = 20) +
     geom_text(aes(label = round(corr_value, digits = 2), color = corr_value), 
-              size = text_size, 
+              size = text_size,
               fontface = 'bold') +
     scale_color_gradientn(colors = hcl.colors(200, 'RdBu'),
                           limits = c(-1, 1),
                           breaks = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1),
                           labels = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1)) +
-    guides(color = guide_colorbar(barwidth = 1,
-                                  barheight = legend_barheight)) +
     scale_x_discrete(position = 'top') +
     theme(axis.text = element_text(color = 'red'),
           axis.ticks = element_blank(),
@@ -85,14 +83,18 @@ run_correlation <- function(wide_count_df,
           panel.grid.minor = element_blank(),
           panel.border = element_blank(),
           axis.text.x = element_text(angle = 90, hjust = 0),
-          legend.frame = element_rect(color = 'black', linetype = 'solid', linewidth = 0.5),
+          legend.frame = element_rect(color = 'black', linetype = 'solid', linewidth = 0.25),
           legend.ticks = element_blank(),
           legend.text = element_text(size = legend_text_size),
           legend.title = element_blank(),
-          legend.box.spacing = unit(legend_box_spacing, 'cm'))
+          legend.key.height = unit(legend_bar_height, 'null'),
+          legend.key.width = unit(10, 'pt'),
+          legend.box.spacing = unit(legend_box_spacing, 'cm'),
+          legend.location = "align",
+          legend.justification = "right")
   
   ## creating list of outputs
-  my_list <- list(CorrMatrix = proc_corr_matrix,
+  my_list <- list(CorrMatrix = corr_matrix,
                   CorrPlot = corr_plot)
   return(my_list)
 }
@@ -106,9 +108,9 @@ gene_combCounts_wide_df <- read.table(args$gene_count_wide_fp)
 sgRNA_corr_res <- run_correlation(wide_count_df = sgRNA_combCounts_wide_df,
                                   corr_method = 'spearman',
                                   text_size = 5,
-                                  legend_barheight = 23.6,
+                                  legend_barheight = 1,
                                   legend_text_size = 12,
-                                  legend_box_spacing = -0.3)
+                                  legend_box_spacing = -0.1)
 
 sgRNA_corr_matrix <- sgRNA_corr_res$CorrMatrix
 sgRNA_corr_plot <- sgRNA_corr_res$CorrPlot
@@ -117,9 +119,9 @@ sgRNA_corr_plot <- sgRNA_corr_res$CorrPlot
 gene_corr_res <- run_correlation(wide_count_df = gene_combCounts_wide_df,
                                  corr_method = 'spearman',
                                  text_size = 5,
-                                 legend_barheight = 23.6,
+                                 legend_barheight = 1,
                                  legend_text_size = 12,
-                                 legend_box_spacing = -0.3)
+                                 legend_box_spacing = -0.1)
 
 gene_corr_matrix <- gene_corr_res$CorrMatrix
 gene_corr_plot <- gene_corr_res$CorrPlot
@@ -128,22 +130,22 @@ gene_corr_plot <- gene_corr_res$CorrPlot
 ## plots - pdf
 ggsave(args$sgRNA_corr_pdf_fp,
        plot = sgRNA_corr_plot,
-       width = 10,
-       height = 8)
+       width = 11,
+       height = 9)
 ggsave(args$gene_corr_pdf_fp,
        plot = gene_corr_plot,
-       width = 10,
-       height = 8)
+       width = 11,
+       height = 9)
 
 ## plots - png
 ggsave(args$sgRNA_corr_png_fp,
        plot = sgRNA_corr_plot,
-       width = 10,
-       height = 8)
+       width = 11,
+       height = 9)
 ggsave(args$gene_corr_png_fp,
        plot = gene_corr_plot,
-       width = 10,
-       height = 8)
+       width = 11,
+       height = 9)
 
 ## correlation result files 
 write_tsv(sgRNA_corr_matrix,

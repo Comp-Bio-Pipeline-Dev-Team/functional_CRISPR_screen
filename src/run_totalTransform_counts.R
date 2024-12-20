@@ -14,6 +14,11 @@ parser$add_argument("-cl",
                     "--comb_countLong_table",
                     dest = "comb_count_fp",
                     help = "Filepath to the long version of the total counts table file as a .tsv.")
+parser$add_argument("-m",
+                    "--metadata",
+                    dest = "metadata_fp",
+                    help = "Filepath to metadata file in .csv format. 
+                    Must have columns named 'sampleid' and 'biological_group'.")
 parser$add_argument("-tpd",
                     "--total_count_pdf",
                     dest = "total_count_pdf_fp",
@@ -44,7 +49,9 @@ args <- parser$parse_args()
 ## calculates the total amount of sgRNA/gene counts per sample and creates a plot
 ## idk if this will be by biological group instead of sample in the future...
 run_total_counts <- function(comb_table,
-                             sum_col,
+                             metadata_df,
+                             sample_col,
+                             fill_by_col,
                              bar_alpha,
                              brewer_palette,
                              x_label,
@@ -52,21 +59,27 @@ run_total_counts <- function(comb_table,
                              plot_title){
   ## calculating total counts per sample
   total_counts_table <- comb_table %>% 
-    select(.data[[sum_col]], Plus_reads) %>% 
-    group_by(.data[[sum_col]]) %>% 
-    summarize(total_counts = sum(Plus_reads))
+    select(.data[[sample_col]], Plus_reads) %>% 
+    group_by(.data[[sample_col]]) %>% 
+    summarize(total_counts = sum(Plus_reads)) %>% 
+    left_join(metadata_df, by = sample_col) 
+  
+  ## to reorder the x axis so all bio reps are next to each other
+  x_axis_order <- unique(unlist(metadata_df[sample_col]))
   
   ## building total counts plot
   total_counts_plot <- total_counts_table %>% 
-    ggplot(aes(x = .data[[sum_col]], y = total_counts)) +
-    geom_bar(aes(fill = .data[[sum_col]]), 
+    ggplot(aes(x = .data[[sample_col]], y = total_counts)) +
+    geom_bar(aes(fill = .data[[fill_by_col]]), 
              stat = 'identity', 
              color = 'black', 
              alpha = bar_alpha) +
+    scale_x_discrete(limits = factor(x_axis_order)) +
     theme_bw(base_size = 20) +
     scale_fill_brewer(palette = brewer_palette,
-                      guide = 'none') +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+                      name = legend_title) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position = 'bottom') +
     labs(x = x_label,
          y = y_label,
          title = plot_title)
@@ -78,25 +91,34 @@ run_total_counts <- function(comb_table,
 
 ## transforms all counts in the Plus_reads column by log2 and builds a plot
 run_transform_counts <- function(comb_table,
-                                 x_axis_col,
+                                 metadata_df,
+                                 sample_col,
+                                 fill_by_col,
                                  bar_alpha,
                                  brewer_palette,
+                                 legend_title,
                                  x_label,
                                  y_label,
                                  plot_title){
   ## log2 transformation
   transform_count_table <- comb_table %>% 
-    mutate(log2_counts = log2(Plus_reads))
+    mutate(log2_counts = log2(Plus_reads)) %>% 
+    left_join(metadata_df, by = sample_col)
+  
+  ## to reorder the x axis so all bio reps are next to each other
+  x_axis_order <- unique(unlist(metadata_df[sample_col]))
   
   ## plot 
   transform_count_plot <- transform_count_table %>% 
-    ggplot(aes(x = .data[[x_axis_col]], y = log2_counts)) +
-    geom_boxplot(aes(group = .data[[x_axis_col]]), width = 0.5, color = 'black') +
-    geom_violin(aes(fill = .data[[x_axis_col]]), color = 'black', alpha = bar_alpha) +
+    ggplot(aes(x = .data[[sample_col]], y = log2_counts)) +
+    geom_boxplot(aes(group = .data[[sample_col]]), width = 0.5, color = 'black') +
+    geom_violin(aes(fill = .data[[fill_by_col]]), color = 'black', alpha = bar_alpha) +
+    scale_x_discrete(limits = x_axis_order) +
     theme_bw(base_size = 20) +
     scale_fill_brewer(palette = brewer_palette,
-                      guide = 'none') +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+                      name = legend_title) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position = 'bottom') +
     labs(x = x_label,
          y = y_label,
          title = plot_title)
@@ -108,12 +130,19 @@ run_transform_counts <- function(comb_table,
 
 ## actual analysis
 comb_counts <- read_tsv(args$comb_count_fp)
+metadata <- read_csv(args$metadata_fp)
+
+metadata <- metadata %>% 
+  arrange(biological_group)
 
 ## total counts 
 total_counts_res <- run_total_counts(comb_table = comb_counts,
-                                     sum_col = 'sampleid',
+                                     metadata_df = metadata,
+                                     sample_col = 'sampleid',
+                                     fill_by_col = 'biological_group',
                                      bar_alpha = 0.6,
                                      brewer_palette = 'Dark2',
+                                     legend_title = 'Biological Group',
                                      x_label = 'Sample',
                                      y_label = 'Total Counts',
                                      plot_title = 'Total sgRNA/Gene Counts per Sample')
@@ -123,9 +152,12 @@ total_counts_plot <- total_counts_res$TotalCountPlot
 
 ## transformed (log2) counts
 transform_count_res <- run_transform_counts(comb_table = comb_counts,
-                                            x_axis_col = 'sampleid',
+                                            metadata_df = metadata,
+                                            sample_col = 'sampleid',
+                                            fill_by_col = 'biological_group',
                                             bar_alpha = 0.6,
                                             brewer_palette = 'Dark2',
+                                            legend_title = 'Biological Group',
                                             x_label = 'Sample',
                                             y_label = 'log2(Counts)',
                                             plot_title = 'Transformed sgRNA/Gene Counts')
@@ -138,21 +170,21 @@ transform_counts_plot <- transform_count_res$TransformCountPlot
 ggsave(args$total_count_pdf_fp,
        plot = total_counts_plot,
        width = 9.5,
-       height = 7)
+       height = 8)
 ggsave(args$trans_count_pdf_fp,
        plot = transform_counts_plot,
        width = 9.5,
-       height = 7)
+       height = 8)
 
 ## plots - png
 ggsave(args$total_count_png_fp,
        plot = total_counts_plot,
        width = 9.5,
-       height = 7)
+       height = 8)
 ggsave(args$trans_count_png_fp,
        plot = transform_counts_plot,
        width = 9.5,
-       height = 7)
+       height = 8)
 
 ## result files 
 write_tsv(total_counts_table,

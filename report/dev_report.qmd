@@ -10,11 +10,11 @@ editor:
 
 # so you've run a CRISPR functional screen but what does it mean?
 
-this will be some fun text about the crispr functional screen (but they should) already know what's up
+pooled CRISPR functional screens are typically used for detecting cell gene expression in a variety of conditions (whatever you want to test, really). after your wet lab experiments and sequencing, our analysis of the raw sequences gives us counts of a particular genotype (measured by sgRNA or gene presence). this report strives to break down our analysis and show you preliminary results on the success of your experiment so you can move forward with your investigation.
 
-# summary stats table
+# analysis summary table
 
-this my attempt at pulling a table in. can read in .tsv/.csv files via R or python (I'm using R here). ive hidden the code chunk so you can only see the output.
+we've included a summary table of how your raw sequences fared in our analysis. with a successful CRISPR functional screen, you'd expect most of the reads to contain the vector and to align to sgRNA.
 
 ```{r}
 #| label: tbl-summaryStats
@@ -42,7 +42,7 @@ kable(summary_table, align='lcccccccc')
 ```
 
 | Column                           | Explanation                                                                                                                                                              |
-|--------------------|----------------------------------------------------|
+|-----------------------|-------------------------------------------------|
 | Total Reads Sequenced            | Total number of reads sequenced in your sample.                                                                                                                          |
 | Reads with Vector                | Total number of reads containing the vector sequence. This is the number of reads used for alignment.                                                                    |
 | Reads without Vector             | Total number of reads where the vector sequence was not detected and therefore not considered for sgRNA mapping. These reads are not included in the alignment step.     |
@@ -56,14 +56,14 @@ kable(summary_table, align='lcccccccc')
 
 # what we do
 
-(workflow overview)
+below is a more in-depth description of how we process your raw sequences including the software used, outputs, and why we do each particular step.
 
 note: for the workflow .png to render in a non-blurry format you'll need to save it to the exact px dimensions that you want it to be in for the html (so this file). right now it's; w: 2850 px, h: 2311 px, dpi: 688.27.
 
 ![](plots/workflow_flowchart.png){width="2850"}
 
 | Workflow Step                            | Why we do this                                                                                                                                                                              |
-|-------------------|-----------------------------------------------------|
+|----------------------|--------------------------------------------------|
 | 1: Quality Check                         | Done to assess the overall quality of the sequences we received prior to additional analysis.                                                                                               |
 | 2: Raw Sequence Prep (trimming)          | To trim all found sequences from the 5' end to 20 base pairs (bp) in length based on the vector sequence of the library that was used. All sgRNA sequences should be about 20 bp in length. |
 | 3: Sequence Alignment                    | To map the trimmed sgRNA sequences to the associated library that they were prepped with to see which sgRNA sequences are present.                                                          |
@@ -78,53 +78,53 @@ note: for the workflow .png to render in a non-blurry format you'll need to save
 
 # plots
 
-this is my attempt at pulling a plot in. update: plots need to be in .png format to render ! saved all plots as a .png as well and put them in `report/plots` for report generation.
+we generate plots to validate that your experiment ran smoothly and that all biological replicates look similar to each other. there are a few different ways we do this; total and transformed sgRNA/gene counts, PCA analysis, and correlation analysis.
 
 ## total and transformed counts
 
-here's info on why we looked at total and transformed counts sgRNA guide sequences overall (there isn't a separate one for individual genes since they both add up to the same number).
+we looked at total and transformed sgRNA/gene counts to make sure that all samples and biological replicates have about the same amount (there isn't a separate one for individual genes since they both add up to the same number).
 
 ### total counts
 
-total counts of guide sequences per biological group
+total counts is exactly what it sounds like, adding up all the sgRNA/gene counts per sample for comparison. the plot is colored by biological group and all replicates should be next to each other on the x-axis.
 
 ![Total Count Plot](plots/sample_totalCount_plot.png)
 
-### transformed counts 
+### transformed counts
 
-log2() transformed counts of guide sequences per biological group **(why are we doing this??)**
+the total sgRNA/gene counts above undergo a log2() transformation to ensure that the distribution of counts per sample is similar across all samples. like the plot above, the plot is colored by biological group and all replicates should be next to each other on the x-axis. **(why are we doing this??)**
 
 ![log2(Total Count Plot)](plots/sample_transCounts_plot.png)
 
 ## pca analysis
 
-here's a little info on the pca analysis done and the two outputs! looking at the clustering of biological replicates via principal components analysis. we should expect replicates in the same biological group to cluster together (this is not a good example).
+we next put the counts-per-million (CPM) normalized sgRNA and gene counts through a principal components analysis (PCA) to look at the clustering of all replicates in a biological group. we expect replicates in the same biological group to cluster together (this is not a good example). we do this for sgRNA and gene counts separately since they're different and thus give us slightly different PCA results.
 
 ### sgRNA count PCA
 
-we did this using all of the guide RNA sequences
+we did this using all of the small guide RNA (sgRNA) sequences
 
 ![sgRNA Count PCA plot](plots/sgRNACount_PCA_plot.png)
 
 ### gene count PCA
 
-this was done using the individual genes
+this was done using the individual genes (several sgRNAs typically fall under one gene, so these are just added up).
 
 ![Gene Count PCA plot](plots/geneCount_PCA_plot.png)
 
 ## correlation analysis
 
-here's info on why we did correlation analysis on the different biological groups! we wanted to make sure that all replicates in a biological group correlate more closely with each other than other biological groups (i.e. we want a correlation value closer to 1). positive correlations will be deeper blue and negative correlations will be deeper red.
+we performed a spearman correlation analysis to make sure that all replicates in a biological group correlate more closely with each other than other biological groups (i.e. we want a correlation value closer to 1). positive correlations will be deeper blue and negative correlations will be deeper red. we ran our correlation analysis on sgRNA and gene counts separately.
 
 ### sgRNA correlation comparisons
 
-we did this for all sgRNA sequences
+we did this for all small guide RNA (sgRNA) sequences - idk if we need this text
 
 ![sgRNA Count Correlation Plot](plots/sgRNACount_correlationMatrix.png)
 
 ### gene correlation comparisons
 
-this was done using the individual genes
+this was done using the individual genes - same with this text
 
 ![Gene Count Correlation Plot](plots/geneCount_correlationMatrix.png)
 
