@@ -1,0 +1,11 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+.snakemake
+*.fasta
+/.quarto/
+__pycache__
+workflow_flowchart.svg
+/reference_data/

@@ -8,12 +8,12 @@ SAMPLE_PREFIX = metadata_csv["sampleid"]
 print(SAMPLE_PREFIX)
 
 RAW_SEQ_IN = config["raw_seq_in"]
-BOWTIE_INDEX = config["crispr_sg_index"]
+BOWTIE_INDEX = config["crispr_sgRNA_index"]
 BOWTIE_MISMATCHES = config["bowtie_mismatches"]
 METADATA = config["metadata_file"]
 
 ## ----CUTADAPT VECTOR VARIABLES----
-VECTOR_BP = "TTGTGGAAAGGACGAAACACCG" 
+VECTOR_BP = config["vector_seq_used"]
 ## these will be editable defaults 
 VECTOR_MIN_OVERLP = config["vector_seq_minOverlap"]
 VECTOR_ERROR = config["vector_seq_error"]
@@ -77,7 +77,6 @@ rule all:
                 sample_prefix=SAMPLE_PREFIX),
         "report/summary_stats/summary_stat_table.tsv",
         "report/dev_report.html"
-        ##"report/dev_report.pdf"
         
 
 
@@ -411,7 +410,6 @@ rule render_report:
         report_doc = "report/dev_report.qmd"
     output:
         report_html = "report/dev_report.html"
-        ##report_pdf = "report/dev_report.pdf"
     conda:
         R_ENV
     params:
