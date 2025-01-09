@@ -4,7 +4,9 @@ channels:
   - conda-forge
   - anaconda
 dependencies:
+  - python=3.13.1
   - pip
   - pip:
-    - multiqc
-    - snakemake
+    - multiqc==1.16
+    - snakemake==8.27.1
+    - setuptools==75.8.0

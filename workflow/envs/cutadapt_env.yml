@@ -4,10 +4,14 @@ channels:
   - conda-forge
   - anaconda
 dependencies:
-  - cutadapt
+  - python=3.10
+  - cutadapt=4.2
   - pip
   - pip:
-    - snakemake
+    - snakemake==7.32.4
+
+## cutadapt v4.2 only supports python v3.10 and snakemake v7.32.4
+## i don't think this will cause many problems but idk
 
 ## might need this for macos arm64
 ## CONDA_SUBDIR=osx-64 conda create -n cutadapt cutadapt

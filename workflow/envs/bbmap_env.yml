@@ -4,9 +4,10 @@ channels:
   - conda-forge
   - anaconda
 dependencies:
-  - bbmap
+  - python=3.13.1
+  - bbmap=39.09
   - pip
   - pip:
-    - snakemake
+    - snakemake==8.27.1
 
 ## referenced as bbmap.sh in the command line

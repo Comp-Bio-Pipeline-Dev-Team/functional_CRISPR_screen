@@ -18,7 +18,7 @@ VECTOR_BP = config["vector_seq_used"]
 VECTOR_MIN_OVERLP = config["vector_seq_minOverlap"]
 VECTOR_ERROR = config["vector_seq_error"]
 
-## ----ENVIRONMENTS----
+## ----ENVIRONMENTS/SINGULARITIES----
 ## soon to be docker singularities
 ## we don't want users to have access to this 
 ## can change these to "envs/env.yml" instead of having them installed
@@ -28,6 +28,13 @@ CUTADAPT_ENV = "cutadapt"
 BOWTIE_ENV = "bowtie1"
 BBMAP_ENV = "bbmap"
 R_ENV = "r_env_crispr"
+
+FASTQC_SING = "fastqc"
+MULTIQC_SING = "multiqc"
+CUTADAPT_SING = "cutadapt"
+BOWTIE_SING = "bowtie1"
+BBMAP_SING = "bbmap"
+R_SING = "r_env_crispr" ## will need to put quarto in this image 
 
 ## ----WORKFLOW----
 ## only need to use `expand` in rule all 
@@ -90,6 +97,8 @@ rule run_fastqc:
         inDir = RAW_SEQ_IN
     output:
         outDir = directory("crispr_screen_out/fastqc_outputs/")
+    singularity:
+        FASTQC_SING
     conda:
         FASTQC_ENV
     params:
@@ -109,6 +118,8 @@ rule run_multiqc:
         inDir = "crispr_screen_out/fastqc_outputs/"
     output:
         fastq_report_out = "crispr_screen_out/multiqc_outputs/fastqc_crispr_screen.html"
+    singularity:
+        MULTIQC_SING
     conda:
         MULTIQC_ENV
     params:
@@ -132,6 +143,8 @@ rule run_cutadapt:
     output:
         out_samples = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz",
         out_untrimmed = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz"
+    singularity:
+        CUTADAPT_SING
     conda:
         CUTADAPT_ENV
     params:
@@ -164,6 +177,8 @@ rule run_bowtie:
     ## can specify log outputs here
     log:
         log = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.log"
+    singularity:
+        BOWTIE_SING
     conda:
         BOWTIE_ENV
     params:
@@ -196,6 +211,8 @@ rule run_bbmap:
         count_out = "crispr_screen_out/count_output/{sample_prefix}_counts.txt"
     log:
         log = "crispr_screen_out/count_output/{sample_prefix}_bbpileup.log"
+    singularity:
+        BBMAP_SING
     conda:
         BBMAP_ENV
     params:
@@ -242,6 +259,8 @@ rule normalize_counts:
         norm_sgRNA_counts = "crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv",
         gene_counts_wide = "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv",
         norm_gene_counts = "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv"
+    singularity:
+        R_SING
     conda:
         R_ENV
     shell:
@@ -267,6 +286,8 @@ rule run_pca:
         gene_PCA_png = "report/plots/geneCount_PCA_plot.png", 
         sgRNA_PCA_table = "crispr_screen_out/qc_files/sgRNACount_PCA_results.tsv",
         gene_PCA_table = "crispr_screen_out/qc_files/geneCount_PCA_results.tsv"
+    singularity:
+        R_SING
     conda:
         R_ENV
     shell:
@@ -294,6 +315,8 @@ rule run_total_transform_counts:
         trans_count_png = "report/plots/sample_transCounts_plot.png",
         total_count_table = "crispr_screen_out/qc_files/total_count_results.tsv",
         trans_count_table = "crispr_screen_out/qc_files/transform_count_results.tsv"
+    singularity:
+        R_SING
     conda:
         R_ENV
     shell:
@@ -320,6 +343,8 @@ rule run_correlation:
         gene_corr_png = "report/plots/geneCount_correlationMatrix.png",
         sgRNA_corr_table = "crispr_screen_out/qc_files/sgRNACount_correlation_results.tsv",
         gene_corr_table = "crispr_screen_out/qc_files/geneCount_correlation_results.tsv"
+    singularity:
+        R_SING
     conda:
         R_ENV
     shell:
@@ -410,6 +435,8 @@ rule render_report:
         report_doc = "report/dev_report.qmd"
     output:
         report_html = "report/dev_report.html"
+    singularity:
+        R_SING
     conda:
         R_ENV
     params:

@@ -31,6 +31,10 @@ def get_args():
     parser.add_argument("--crispr_sgRNA_index",
                         help="The sgRNA index library that samples were prepped with. \
                               Options are: 'human_brunello', '', and 'other'")
+    parser.add_argument("--use_conda",
+                        help="If this parameter is set to True, the workflow will run using conda \
+                              environments instead of singularity",
+                        default=None)
     parser.add_argument("--dry_run",
                         help="If this parameter is set to True, you can practice running the workflow without \
                               actually starting it",
@@ -73,8 +77,12 @@ def assemble_snake_command(snake_path,
     snake_command = ["snakemake",
                     "-s", snake_path,
                     "--configfile", config_path,
-                    "-c", str(args.cores),
-                    "--use-conda"]
+                    "-c", str(args.cores)]
+    
+    if args.use_conda is not None:
+        snake_command.append("--use-conda")
+    else:
+        snake_command.append("--use-singularity")
     
     if args.dry_run is not None:
         snake_command.append("--dry-run")
@@ -96,8 +104,8 @@ def main():
     command = assemble_snake_command(where_snake,
                                      where_config,
                                      args)
-    subprocess.run(command)
+    complete = subprocess.run(command)
 
 
-##if __name__=="_main_":
-main()
+if __name__=="__main__":
+    main()

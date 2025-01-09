@@ -9,4 +9,5 @@ functional_CRISPR_screen.py \
     --vector_seq_minOverlap 10 \
     --vector_seq_error 0.2 \
     --crispr_sgRNA_index 'reference_data/human_crispr_sgRNA_brunello/human_crispr_sg_brunello' \
+    --use_conda True \
     --dry_run True
