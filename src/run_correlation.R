@@ -7,8 +7,6 @@ library(broom)
 library(magrittr)
 library(edgeR)
 library(stats)
-library(corrplot)
-library(corrr)
 library(argparse)
 
 ## argparse to link with snakemake

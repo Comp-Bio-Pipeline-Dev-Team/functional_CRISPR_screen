@@ -29,12 +29,13 @@ BOWTIE_ENV = "bowtie1"
 BBMAP_ENV = "bbmap"
 R_ENV = "r_env_crispr"
 
-FASTQC_SING = "fastqc"
-MULTIQC_SING = "multiqc"
-CUTADAPT_SING = "cutadapt"
-BOWTIE_SING = "bowtie1"
-BBMAP_SING = "bbmap"
-R_SING = "r_env_crispr" ## will need to put quarto in this image 
+FASTQC_SING = "docker://tbrunetti/functional_crispr_screen:fastqc-v0.12.1"
+MULTIQC_SING = "docker://tbrunetti/functional_crispr_screen:multiqc-v1.16"
+CUTADAPT_SING = "docker://tbrunetti/functional_crispr_screen:cutadapt-v4.2"
+BOWTIE_SING = "docker://tbrunetti/functional_crispr_screen:bowtie1-v1.3.1"
+BBMAP_SING = "docker://tbrunetti/functional_crispr_screen:bbmap-v39.08"
+R_SING = "docker://r_env_crispr" ## will need to put quarto in this image 
+UBUNTU_SING = "docker://tbrunetti/functional_crispr_screen:ubuntu-v24.04"
 
 ## ----WORKFLOW----
 ## only need to use `expand` in rule all 
@@ -231,6 +232,8 @@ rule prep_count_files:
                            sample_prefix=SAMPLE_PREFIX)
     output:
         combined_count_file = "crispr_screen_out/count_output/allSample_counts.tsv"
+    singularity:
+        UBUNTU_SING
     params:
         inDir = "crispr_screen_out/count_output/",
         out_file_name = "allSample_counts.tsv"
@@ -371,6 +374,8 @@ rule assemble_stat_table:
         counts_file = "crispr_screen_out/count_output/{sample_prefix}_counts.txt"
     output:
         sample_stat_out = "report/summary_stats/{sample_prefix}_overall_stats.tsv"
+    singularity:
+        UBUNTU_SING
     params:
         samples = lambda wc: wc.get("sample_prefix")
     shell:
@@ -416,6 +421,8 @@ rule combine_stat_table:
                             sample_prefix=SAMPLE_PREFIX)
     output:
         combined_stat_out = "report/summary_stats/summary_stat_table.tsv"
+    singularity:
+        UBUNTU_SING
     shell:
         """
         cat {input.cols_in} {input.samples_in} > {output.combined_stat_out}
