@@ -19,22 +19,24 @@ VECTOR_MIN_OVERLP = config["vector_seq_minOverlap"]
 VECTOR_ERROR = config["vector_seq_error"]
 
 ## ----ENVIRONMENTS/SINGULARITIES----
-## soon to be docker singularities
+## conda environments 
 ## we don't want users to have access to this 
-## can change these to "envs/env.yml" instead of having them installed
-FASTQC_ENV = "fastqc"
-MULTIQC_ENV = "multiqc"
-CUTADAPT_ENV = "cutadapt"
-BOWTIE_ENV = "bowtie1"
-BBMAP_ENV = "bbmap"
-R_ENV = "r_env_crispr"
+## will change these to "envs/env.yml" instead of having them installed
+FASTQC_ENV = "fastqc"   ## "workflow/envs/fastqc_env.yml"
+MULTIQC_ENV = "multiqc"   ## "workflow/envs/multiqc_env.yml"
+CUTADAPT_ENV = "cutadapt"  ## "workflow/envs/cutadapt_env.yml"
+BOWTIE_ENV = "bowtie1" ## "workflow/envs/bowtie_env.yml"
+BBMAP_ENV = "bbmap"  ## "workflow/envs/bbmap_env.yml"
+R_ENV = "r_env_crispr"  ## "workflow/envs/r_env.yml"
 
+## singularities (preferred)
 FASTQC_SING = "docker://tbrunetti/functional_crispr_screen:fastqc-v0.12.1"
 MULTIQC_SING = "docker://tbrunetti/functional_crispr_screen:multiqc-v1.16"
 CUTADAPT_SING = "docker://tbrunetti/functional_crispr_screen:cutadapt-v4.2"
 BOWTIE_SING = "docker://tbrunetti/functional_crispr_screen:bowtie1-v1.3.1"
 BBMAP_SING = "docker://tbrunetti/functional_crispr_screen:bbmap-v39.08"
-R_SING = "docker://r_env_crispr" ## will need to put quarto in this image 
+R_SING = "docker://r_env_crispr" 
+QUARTO_SING = "docker://quarto-v1.6.40"
 UBUNTU_SING = "docker://tbrunetti/functional_crispr_screen:ubuntu-v24.04"
 
 ## ----WORKFLOW----
@@ -443,7 +445,7 @@ rule render_report:
     output:
         report_html = "report/dev_report.html"
     singularity:
-        R_SING
+        QUARTO_SING
     conda:
         R_ENV
     params:

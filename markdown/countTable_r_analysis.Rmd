@@ -14,8 +14,8 @@ library(broom)
 library(magrittr)
 library(edgeR)
 library(stats)
-library(corrplot)
-library(corrr)
+##library(corrplot)
+##library(corrr)
 library(cowplot)
 library(gridExtra)
 library(egg)
@@ -265,7 +265,7 @@ run_correlation <- function(wide_count_df,
 **File paths**
 ```{r}
 comb_table_fp <- '../crispr_screen_out/count_output/allSample_counts.tsv'
-pre_meta_fp <- '../sample_ids.csv'
+meta_fp <- '../metadata.csv'
 ```
 
 **Reading in count file**
@@ -278,15 +278,15 @@ comb_table$sampleid <- gsub("*_counts.txt", "", comb_table$sampleid)
 ## **Putting together toy metadata**
 need to have a biological_group column (at minimum) in the metadata
 ```{r}
-pre_meta <- read_csv(pre_meta_fp)
+meta <- read_csv(meta_fp)
 
-set.seed(70)
-
-meta <- pre_meta %>% 
-  mutate(biological_group = sample(x = c('high', 
-                                         'low'),
-                                   size = 4,
-                                   replace = TRUE))
+# set.seed(70)
+# 
+# meta <- pre_meta %>% 
+#   mutate(biological_group = sample(x = c('high', 
+#                                          'low'),
+#                                    size = 4,
+#                                    replace = TRUE))
 
 # write_csv(meta, 
 #           '../metadata.csv')

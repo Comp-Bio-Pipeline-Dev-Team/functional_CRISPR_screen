@@ -59,12 +59,7 @@ def create_config_file(config_path,
                      "vector_seq_used": args.vector_seq_used,
                      "vector_seq_minOverlap": args.vector_seq_minOverlap,
                      "vector_seq_error": args.vector_seq_error,
-                     "crispr_sgRNA_index": args.crispr_sgRNA_index,
-                     "fastqc_env": "workflow/envs/fastqc_env.yml",
-                     "mutliqc_env": "workflow/envs/multiqc_env.yml",
-                     "cutadapt_env": "workflow/envs/cutadapt_env.yml",
-                     "bowtie_env": "workflow/envs/bowtie_env.yml",
-                     "bbmap_env": "workflow/envs/bbmap_env.yml"}
+                     "crispr_sgRNA_index": args.crispr_sgRNA_index}
     
     with open(config_path, 'w') as outfile:
         yaml.dump(config_params, outfile, default_flow_style=False, sort_keys=False)
