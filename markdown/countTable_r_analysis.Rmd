@@ -92,7 +92,7 @@ run_pca <- function(norm_df,
 
   ## pulling actual PCA values out of the object
   count_pca_table <- count_pca_results$x %>% 
-    as_tibble(rownames = sample_col) %>% 
+    as_tibble(rownames = sample_col, optional = TRUE) %>% 
     left_join(metadata_df, by = sample_col)
   
   ## pulling out variance explained for PC1 and PC2
@@ -379,6 +379,21 @@ geneNorm_combCounts_df <- geneCount_table_out$NormTable
 - need to have biological category parameter for the pca plot eventually (want to see the biological replicates cluster together) - need to be colored by this (biological_group)
 - may save these as an .rdat object as well (for us) - put the raw and normalized (filtered) counts tables, pca obj
 
+```{r}
+test_count_pca_results <- prcomp(t(sgRNAnorm_combCounts_df),
+                              center = TRUE,
+                              scale. = TRUE)
+
+test_count_pca_table <- test_count_pca_results$x %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var = 'sampleid')
+     #as_tibble(rownames = 'sampleid') 
+    # left_join(meta, by = 'sampleid')
+
+test_count_pca_table
+```
+
+
 for sgRNA ids
 ```{r, fig.width=8, fig.height=6}
 sgRNA_pca_res <- run_pca(norm_df = sgRNAnorm_combCounts_df,
@@ -494,7 +509,7 @@ sgRNA_corr_res <- run_correlation(wide_count_df = test_sgRNA_wide,
                                   legend_text_size = 12,
                                   legend_box_spacing = 0)
 
-sgRNA_corr_matrix <- sgRNA_corr_res$CorrMatrix
+sgRNA_corr_matrix <- as.data.frame(sgRNA_corr_res$CorrMatrix)
 sgRNA_corr_plot <- sgRNA_corr_res$CorrPlot
 
 sgRNA_corr_plot

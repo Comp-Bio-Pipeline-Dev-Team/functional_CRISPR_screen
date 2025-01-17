@@ -8,9 +8,14 @@ SAMPLE_PREFIX = metadata_csv["sampleid"]
 print(SAMPLE_PREFIX)
 
 RAW_SEQ_IN = config["raw_seq_in"]
-BOWTIE_INDEX = config["crispr_sgRNA_index"]
 BOWTIE_MISMATCHES = config["bowtie_mismatches"]
 METADATA = config["metadata_file"]
+WHICH_sgRNA = config["crispr_sgRNA_index"] 
+
+## need to fully build this out for other options besides brunello
+if WHICH_sgRNA == "human_brunello":
+    BOWTIE_INDEX = "reference_data/human_crispr_sgRNA_brunello/human_crispr_sg_brunello"
+    BOWTIE_INDEX_FASTA = "reference_data/int/human_crispr_knockout_pooled_library_brunello.fasta" 
 
 ## ----CUTADAPT VECTOR VARIABLES----
 VECTOR_BP = config["vector_seq_used"]
@@ -22,12 +27,12 @@ VECTOR_ERROR = config["vector_seq_error"]
 ## conda environments 
 ## we don't want users to have access to this 
 ## will change these to "envs/env.yml" instead of having them installed
-FASTQC_ENV = "fastqc"   ## "workflow/envs/fastqc_env.yml"
-MULTIQC_ENV = "multiqc"   ## "workflow/envs/multiqc_env.yml"
-CUTADAPT_ENV = "cutadapt"  ## "workflow/envs/cutadapt_env.yml"
-BOWTIE_ENV = "bowtie1" ## "workflow/envs/bowtie_env.yml"
-BBMAP_ENV = "bbmap"  ## "workflow/envs/bbmap_env.yml"
-R_ENV = "r_env_crispr"  ## "workflow/envs/r_env.yml"
+FASTQC_ENV = "fastqc"   ## "envs/fastqc_env.yml"
+MULTIQC_ENV = "multiqc"   ## "envs/multiqc_env.yml"
+CUTADAPT_ENV = "cutadapt"  ## "envs/cutadapt_env.yml"
+BOWTIE_ENV = "bowtie1" ## "envs/bowtie_env.yml"
+BBMAP_ENV = "bbmap"  ## "envs/bbmap_env.yml"
+R_ENV = "r_env_crispr"  ## "envs/r_env.yml"
 
 ## singularities (preferred)
 FASTQC_SING = "docker://tbrunetti/functional_crispr_screen:fastqc-v0.12.1"
@@ -66,27 +71,28 @@ rule all:
         "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv",
         "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv",
         "crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
-        "report/plots/sgRNACount_PCA_plot.png",
+        "workflow/report/plots/sgRNACount_PCA_plot.png",
         "crispr_screen_out/plots/geneCount_PCA_plot.pdf",
-        "report/plots/geneCount_PCA_plot.png",
+        "workflow/report/plots/geneCount_PCA_plot.png",
         "crispr_screen_out/qc_files/sgRNACount_PCA_results.tsv",
         "crispr_screen_out/qc_files/geneCount_PCA_results.tsv",
         "crispr_screen_out/plots/sample_totalCount_plot.pdf",
-        "report/plots/sample_totalCount_plot.png",
+        "workflow/report/plots/sample_totalCount_plot.png",
         "crispr_screen_out/plots/sample_transCounts_plot.pdf",
-        "report/plots/sample_transCounts_plot.png",
+        "workflow/report/plots/sample_transCounts_plot.png",
         "crispr_screen_out/qc_files/total_count_results.tsv",
         "crispr_screen_out/qc_files/transform_count_results.tsv",
         "crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf",
-        "report/plots/sgRNACount_correlationMatrix.png",
+        "workflow/report/plots/sgRNACount_correlationMatrix.png",
         "crispr_screen_out/plots/geneCount_correlationMatrix.pdf",
-        "report/plots/geneCount_correlationMatrix.png",
+        "workflow/report/plots/geneCount_correlationMatrix.png",
         "crispr_screen_out/qc_files/sgRNACount_correlation_results.tsv",
         "crispr_screen_out/qc_files/geneCount_correlation_results.tsv",
-        expand("report/summary_stats/{sample_prefix}_overall_stats.tsv",
+        expand("workflow/report/summary_stats/{sample_prefix}_overall_stats.tsv",
                 sample_prefix=SAMPLE_PREFIX),
-        "report/summary_stats/summary_stat_table.tsv",
-        "report/dev_report.html"
+        "crispr_screen_out/qc_files/sample_summary_stat_table.tsv",
+        "workflow/report/summary_stats/sample_summary_stat_table.tsv",
+        "crispr_screen_out/dev_report.html"
         
 
 
@@ -268,9 +274,11 @@ rule normalize_counts:
         R_SING
     conda:
         R_ENV
+    params:
+        r_src_location = workflow.source_path("src/normalize_counts.R")
     shell:
         """
-        Rscript src/normalize_counts.R --comb_count_table {input.comb_count_table} \
+        Rscript {params.r_src_location} --comb_count_table {input.comb_count_table} \
                                        --metadata {input.metadata_file} \
                                        --comb_countLong_out {output.comb_countLong_out} \
                                        --sgRNA_counts_wide {output.sgRNA_counts_wide} \
@@ -286,18 +294,20 @@ rule run_pca:
         norm_gene_counts = "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv"
     output:
         sgRNA_PCA_pdf = "crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
-        sgRNA_PCA_png = "report/plots/sgRNACount_PCA_plot.png",
+        sgRNA_PCA_png = "workflow/report/plots/sgRNACount_PCA_plot.png",
         gene_PCA_pdf = "crispr_screen_out/plots/geneCount_PCA_plot.pdf",
-        gene_PCA_png = "report/plots/geneCount_PCA_plot.png", 
+        gene_PCA_png = "workflow/report/plots/geneCount_PCA_plot.png", 
         sgRNA_PCA_table = "crispr_screen_out/qc_files/sgRNACount_PCA_results.tsv",
         gene_PCA_table = "crispr_screen_out/qc_files/geneCount_PCA_results.tsv"
     singularity:
         R_SING
     conda:
         R_ENV
+    params:
+        r_src_location = workflow.source_path("src/run_pca.R")
     shell:
         """
-        Rscript src/run_pca.R --metadata {input.metadata_file} \
+        Rscript {params.r_src_location} --metadata {input.metadata_file} \
                               --norm_sgRNA_counts {input.norm_sgRNA_counts} \
                               --norm_gene_counts {input.norm_gene_counts} \
                               --sgRNA_PCA_pdf {output.sgRNA_PCA_pdf} \
@@ -315,18 +325,20 @@ rule run_total_transform_counts:
         metadata_file = METADATA
     output:
         total_count_pdf = "crispr_screen_out/plots/sample_totalCount_plot.pdf",
-        total_count_png = "report/plots/sample_totalCount_plot.png",
+        total_count_png = "workflow/report/plots/sample_totalCount_plot.png",
         trans_count_pdf = "crispr_screen_out/plots/sample_transCounts_plot.pdf",
-        trans_count_png = "report/plots/sample_transCounts_plot.png",
+        trans_count_png = "workflow/report/plots/sample_transCounts_plot.png",
         total_count_table = "crispr_screen_out/qc_files/total_count_results.tsv",
         trans_count_table = "crispr_screen_out/qc_files/transform_count_results.tsv"
     singularity:
         R_SING
     conda:
         R_ENV
+    params:
+        r_src_location = workflow.source_path("src/run_totalTransform_counts.R")
     shell:
         """
-        Rscript src/run_totalTransform_counts.R --comb_countLong_table {input.comb_countLong_table} \
+        Rscript {params.r_src_location} --comb_countLong_table {input.comb_countLong_table} \
                                                 --metadata {input.metadata_file} \
                                                 --total_count_pdf {output.total_count_pdf} \
                                                 --total_count_png {output.total_count_png} \
@@ -343,18 +355,20 @@ rule run_correlation:
         gene_counts_wide = "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv" 
     output:
         sgRNA_corr_pdf = "crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf",
-        sgRNA_corr_png = "report/plots/sgRNACount_correlationMatrix.png",
+        sgRNA_corr_png = "workflow/report/plots/sgRNACount_correlationMatrix.png",
         gene_corr_pdf = "crispr_screen_out/plots/geneCount_correlationMatrix.pdf",
-        gene_corr_png = "report/plots/geneCount_correlationMatrix.png",
+        gene_corr_png = "workflow/report/plots/geneCount_correlationMatrix.png",
         sgRNA_corr_table = "crispr_screen_out/qc_files/sgRNACount_correlation_results.tsv",
         gene_corr_table = "crispr_screen_out/qc_files/geneCount_correlation_results.tsv"
     singularity:
         R_SING
     conda:
         R_ENV
+    params:
+        r_src_location = workflow.source_path("src/run_correlation.R")
     shell:
         """
-        Rscript src/run_correlation.R --sgRNA_counts_wide {input.sgRNA_counts_wide} \
+        Rscript {params.r_src_location} --sgRNA_counts_wide {input.sgRNA_counts_wide} \
                                       --gene_counts_wide {input.gene_counts_wide} \
                                       --sgRNA_corr_pdf {output.sgRNA_corr_pdf} \
                                       --sgRNA_corr_png {output.sgRNA_corr_png} \
@@ -369,13 +383,13 @@ rule run_correlation:
 rule assemble_stat_table:
     input:
         raw_file = os.path.join(RAW_SEQ_IN, "{sample_prefix}_R1_001.fastq.gz"),
-        index_fasta_file = "reference_data/int/human_crispr_knockout_pooled_library_brunello.fasta",
+        index_fasta_file = BOWTIE_INDEX_FASTA,
         trimmed_file = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz",
         untrimmed_file = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz",
         bowtie_log = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.log",
         counts_file = "crispr_screen_out/count_output/{sample_prefix}_counts.txt"
     output:
-        sample_stat_out = "report/summary_stats/{sample_prefix}_overall_stats.tsv"
+        sample_stat_out = "workflow/report/summary_stats/{sample_prefix}_overall_stats.tsv"
     singularity:
         UBUNTU_SING
     params:
@@ -418,42 +432,50 @@ rule assemble_stat_table:
 
 rule combine_stat_table:
     input:
-        cols_in = "report/summary_stats/stat_table_cols.tsv",
-        samples_in = expand("report/summary_stats/{sample_prefix}_overall_stats.tsv",
+        cols_in = "workflow/report/summary_stats/stat_table_cols.tsv",
+        samples_in = expand("workflow/report/summary_stats/{sample_prefix}_overall_stats.tsv",
                             sample_prefix=SAMPLE_PREFIX)
     output:
-        combined_stat_out = "report/summary_stats/summary_stat_table.tsv"
+        combined_stat_out = "crispr_screen_out/qc_files/sample_summary_stat_table.tsv",
+        report_stat_out = "workflow/report/summary_stats/sample_summary_stat_table.tsv"
     singularity:
         UBUNTU_SING
     shell:
         """
         cat {input.cols_in} {input.samples_in} > {output.combined_stat_out}
+
+        cp {output.combined_stat_out} {output.report_stat_out}
         """
 
 
 ## need to test this..i'm not sure how its going to go 
 rule render_report:
     input:
-        sgRNA_PCA_png = "report/plots/sgRNACount_PCA_plot.png",
-        gene_PCA_png = "report/plots/geneCount_PCA_plot.png",
-        total_count_png = "report/plots/sample_totalCount_plot.png",
-        trans_count_png = "report/plots/sample_transCounts_plot.png",
-        sgRNA_corr_png = "report/plots/sgRNACount_correlationMatrix.png",
-        gene_corr_png = "report/plots/geneCount_correlationMatrix.png",
-        combined_stat_table = "report/summary_stats/summary_stat_table.tsv",
-        report_doc = "report/dev_report.qmd"
+        sgRNA_PCA_png = "workflow/report/plots/sgRNACount_PCA_plot.png",
+        gene_PCA_png = "workflow/report/plots/geneCount_PCA_plot.png",
+        total_count_png = "workflow/report/plots/sample_totalCount_plot.png",
+        trans_count_png = "workflow/report/plots/sample_transCounts_plot.png",
+        sgRNA_corr_png = "workflow/report/plots/sgRNACount_correlationMatrix.png",
+        gene_corr_png = "workflow/report/plots/geneCount_correlationMatrix.png",
+        combined_stat_table = "workflow/report/summary_stats/sample_summary_stat_table.tsv",
+        report_doc = "workflow/report/dev_report.qmd"
     output:
-        report_html = "report/dev_report.html"
+        report_copy = "crispr_screen_out/dev_report.html"
     singularity:
         QUARTO_SING
     conda:
         R_ENV
     params:
         bowtie_mismatches = BOWTIE_MISMATCHES,
-        report_vars = "report/_variables.yml"
+        report_vars = "workflow/report/_variables.yml",
+        report_html = "workflow/report/dev_report.html",
+        report_location = "crispr_screen_out/"
     shell:
         """
         printf "bowtie_mismatches: {params.bowtie_mismatches}" > {params.report_vars}
 
         quarto render {input.report_doc}
+
+        ## may need to do something to how crispr_screen_out is referenced
+        cp {params.report_html} {params.report_location} 
         """ 
