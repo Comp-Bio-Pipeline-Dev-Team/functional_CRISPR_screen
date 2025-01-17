@@ -25,7 +25,6 @@ VECTOR_ERROR = config["vector_seq_error"]
 
 ## ----ENVIRONMENTS/SINGULARITIES----
 ## conda environments 
-## we don't want users to have access to this 
 ## will change these to "envs/env.yml" instead of having them installed
 FASTQC_ENV = "fastqc"   ## "envs/fastqc_env.yml"
 MULTIQC_ENV = "multiqc"   ## "envs/multiqc_env.yml"
@@ -40,8 +39,8 @@ MULTIQC_SING = "docker://tbrunetti/functional_crispr_screen:multiqc-v1.16"
 CUTADAPT_SING = "docker://tbrunetti/functional_crispr_screen:cutadapt-v4.2"
 BOWTIE_SING = "docker://tbrunetti/functional_crispr_screen:bowtie1-v1.3.1"
 BBMAP_SING = "docker://tbrunetti/functional_crispr_screen:bbmap-v39.08"
-R_SING = "docker://r_env_crispr" 
-QUARTO_SING = "docker://quarto-v1.6.40"
+R_SING = "docker://tbrunetti/functional_crispr_screen:r_env_crispr-v4.3.3" 
+QUARTO_SING = "docker://tbrunetti/functional_crispr_screen:quarto-v1.6.40"
 UBUNTU_SING = "docker://tbrunetti/functional_crispr_screen:ubuntu-v24.04"
 
 ## ----WORKFLOW----
