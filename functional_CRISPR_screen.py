@@ -29,8 +29,9 @@ def get_args():
                         help="The error rate allowed when aligning vector sequences to sgRNA",
                         default=0.2)
     parser.add_argument("--crispr_sgRNA_index",
-                        help="The sgRNA index library that samples were prepped with. \
-                              Options are: 'human_brunello', '', and 'other'")
+                        help="The sgRNA index library that samples were prepped with")
+    parser.add_argument("--crispr_sgRNA_index_name",
+                        help="The name of the sgRNA index library that samples were prepped with") 
     parser.add_argument("--use_conda",
                         help="If this parameter is set to True, the workflow will run using conda \
                               environments instead of singularity",
@@ -59,7 +60,8 @@ def create_config_file(config_path,
                      "vector_seq_used": args.vector_seq_used,
                      "vector_seq_minOverlap": args.vector_seq_minOverlap,
                      "vector_seq_error": args.vector_seq_error,
-                     "crispr_sgRNA_index": args.crispr_sgRNA_index}
+                     "crispr_sgRNA_index": args.crispr_sgRNA_index,
+                     "crispr_sgRNA_index_name": args.crispr_sgRNA_index_name}
     
     with open(config_path, 'w') as outfile:
         yaml.dump(config_params, outfile, default_flow_style=False, sort_keys=False)

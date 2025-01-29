@@ -10,12 +10,13 @@ print(SAMPLE_PREFIX)
 RAW_SEQ_IN = config["raw_seq_in"]
 BOWTIE_MISMATCHES = config["bowtie_mismatches"]
 METADATA = config["metadata_file"]
-WHICH_sgRNA = config["crispr_sgRNA_index"] 
+BOWTIE_INDEX_FASTA = config["crispr_sgRNA_index"] 
+BOWTIE_INDEX_NAME = config["crispr_sgRNA_index_name"]
 
-## need to fully build this out for other options besides brunello
-if WHICH_sgRNA == "human_brunello":
-    BOWTIE_INDEX = "reference_data/human_crispr_sgRNA_brunello/human_crispr_sg_brunello"
-    BOWTIE_INDEX_FASTA = "reference_data/int/human_crispr_knockout_pooled_library_brunello.fasta" 
+## building the full file path of the bowtie index based on the name given by user
+BOWTIE_INDEX_DIR = os.path.join("reference_data", BOWTIE_INDEX_NAME)
+BOWTIE_INDEX = os.path.join(BOWTIE_INDEX_DIR, BOWTIE_INDEX_NAME)
+
 
 ## ----CUTADAPT VECTOR VARIABLES----
 VECTOR_BP = config["vector_seq_used"]
@@ -53,6 +54,8 @@ rule all:
                 sample_prefix = SAMPLE_PREFIX),
         expand("crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz",
                 sample_prefix = SAMPLE_PREFIX),
+        ## idk if this will work the way that I want it to...it did!!
+        BOWTIE_INDEX_DIR,
         expand("crispr_screen_out/bowtie_unaligned/{sample_prefix}_mismatches_allowed_unaligned.sam",
                sample_prefix=SAMPLE_PREFIX),
         expand("crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.sam",
@@ -176,6 +179,30 @@ rule run_cutadapt:
 
 
 ## STEP 2: running bowtie1 
+## idk how snakemake is going to do with this so will probs have to debug 
+rule build_bowtie_index:
+    input:
+        sgRNA_index_fasta = BOWTIE_INDEX_FASTA
+    output:
+        built_sgRNA_index_dir = directory(BOWTIE_INDEX_DIR)
+    singularity:
+        BOWTIE_SING
+    conda:
+        BOWTIE_ENV
+    params:
+        n_threads = 2,
+        built_sgRNA_index = BOWTIE_INDEX
+    shell:
+        """
+        mkdir {output.built_sgRNA_index_dir}
+        
+        bowtie-build \
+            --threads {params.n_threads} \
+            {input.sgRNA_index_fasta} \
+            {params.built_sgRNA_index}
+        """
+
+
 rule run_bowtie:
     input:
         in_samples = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz"
