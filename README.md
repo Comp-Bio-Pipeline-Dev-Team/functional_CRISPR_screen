@@ -8,7 +8,6 @@ These instructions have a few assumptions:
 1. That you already have conda or a conda-like entity (micromamba, mambaforge, miniconda, etc.) installed on your local computer (if you don't have this installed, [do so now](https://github.com/conda-forge/miniforge))
 2. That you have [git](https://github.com/git-guides/install-git) installed on your local computer
 3. That you have [snakemake](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) installed in a conda environment (preferrably one that only contains snakemake)
-3. That you are familiar with the commandline (this is easily google-able if you're not)
 
 ### Step 1:
 On your local computer, navigate to where you'd like the directory for the automated pipeline to live. If you don't do this, GitHub will clone the repository to wherever you currently are in your file system when you call `git clone` (which you don't want, or maybe you do, I don't know your life). Then type this command in your terminal:
@@ -40,7 +39,7 @@ functional_CRISPR_screen.py \
 This script just includes the command line parameters for the pipeline and allows you to easily add file paths to your input sequences, the sgRNA index `.fasta` file, and your metadata file. The input parameters also include the ability to run the pipeline in associated conda environments instead of docker containers and to dry run the pipeline once you put in all parameters to make sure that provided files are located where you said they were. 
 
 ### Step 3:
-Once you have entered/modified the parameters in `run_workflow.sh` as needed, you can run the pipeline! Make sure that you're still within the `functional_CRISPR_screen` directory when you do this. 
+Once you have entered/modified the parameters in `run_workflow.sh` as needed, you can run the pipeline! Make sure that you're still within the `functional_CRISPR_screen` directory when you do this and that you've activated the conda environment containing `snakemake`. 
 
 ```bash
 bash run_snakemake.sh
