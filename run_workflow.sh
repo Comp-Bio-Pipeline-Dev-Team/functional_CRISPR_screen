@@ -2,6 +2,7 @@
 
 ## the python script needs to be verified as an executable! :
 ## chmod +x functional_CRISPR_screen.py
+## chmod +x run_workflow.sh 
 
 ## also need to add path to folder where script lives to my global path like so:
 ## export PATH=/Users/apgarm/projects/immuno_micro_bioinformatics/functional_CRISPR_screen/:$PATH

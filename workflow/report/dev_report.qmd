@@ -1,6 +1,5 @@
 ---
-""---
-title: "test summary report"
+title: "crispr functional screen analysis summary report"
 date: last-modified
 format:
     html: default
@@ -25,7 +24,7 @@ we've included a summary table of how your raw sequences fared in our analysis. 
 library(knitr)
 library(readr)
 
-summary_table <- read_tsv('summary_stats/summary_stat_table.tsv', show_col_types = FALSE)
+summary_table <- read_tsv('summary_stats/sample_summary_stat_table.tsv', show_col_types = FALSE)
 
 new_cols <- c('Sample ID',
 'Total Reads Sequenced',
@@ -43,7 +42,7 @@ kable(summary_table, align='lcccccccc')
 ```
 
 | Column                           | Explanation                                                                                                                                                              |
-|------------------------|------------------------------------------------|
+|-------------------------|-----------------------------------------------|
 | Total Reads Sequenced            | Total number of reads sequenced in your sample.                                                                                                                          |
 | Reads with Vector                | Total number of reads containing the vector sequence. This is the number of reads used for alignment.                                                                    |
 | Reads without Vector             | Total number of reads where the vector sequence was not detected and therefore not considered for sgRNA mapping. These reads are not included in the alignment step.     |
@@ -64,7 +63,7 @@ note: for the workflow .png to render in a non-blurry format you'll need to save
 ![](plots/workflow_flowchart.png){width="2850"}
 
 | Workflow Step                            | Why we do this                                                                                                                                                                              |
-|-----------------------|-------------------------------------------------|
+|------------------------|------------------------------------------------|
 | 1: Quality Check                         | Done to assess the overall quality of the sequences we received prior to additional analysis.                                                                                               |
 | 2: Raw Sequence Prep (trimming)          | To trim all found sequences from the 5' end to 20 base pairs (bp) in length based on the vector sequence of the library that was used. All sgRNA sequences should be about 20 bp in length. |
 | 3: Sequence Alignment                    | To map the trimmed sgRNA sequences to the associated library that they were prepped with to see which sgRNA sequences are present.                                                          |

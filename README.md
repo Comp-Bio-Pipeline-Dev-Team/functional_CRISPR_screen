@@ -22,7 +22,13 @@ Automated pipeline for functional CRISPR screen analyses
 
 Information on how to pull the automated pipeline off of GitHub to your local computer and get it running on your own functional CRISPR screen data!!
 
-These instructions have a few assumptions: 1. That you already have conda or a conda-like entity (micromamba, mambaforge, miniconda, etc.) installed on your local computer (if you don't have this installed, [do so now](https://github.com/conda-forge/miniforge)) 2. That you have [git](https://github.com/git-guides/install-git) installed on your local computer 3. That you have [snakemake](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) installed in a conda environment (preferrably one that only contains snakemake)
+These instructions have a few assumptions: 
+
+1\. That you already have conda or a conda-like entity (micromamba, mambaforge, miniconda, etc.) installed on your local computer (if you don't have this installed, [do so now](https://github.com/conda-forge/miniforge)) 
+
+2\. That you have [git](https://github.com/git-guides/install-git) installed on your local computer 
+
+3\. That you have [snakemake v8.27.1](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) installed in a conda environment (preferrably one that only contains snakemake)
 
 ### Step 1:
 
@@ -57,11 +63,27 @@ This script just includes the command line parameters for the pipeline and allow
 
 ### Step 3:
 
-Once you have entered/modified the parameters in `run_workflow.sh` as needed, you can run the pipeline! Make sure that you're still within the `functional_CRISPR_screen` directory when you do this and that you've activated the conda environment containing `snakemake`.
+Once you have entered/modified the parameters in `run_workflow.sh` as needed, you can run the pipeline! Make sure that you're still within the `functional_CRISPR_screen` directory when you do this and that you've activated the conda environment containing `snakemake`. 
+
+You may need to make `run_workflow.sh` executable in your local computer which can be done by running the following commands. You will need to add the path to the directory that `run_workflow.sh` lives in to your global path (the example below will work for Linux and Mac operating systems, check the appropriate documentation if you're doing this on a Windows system).
 
 ``` bash
-bash run_snakemake.sh
+## makes the script below executable
+chmod u+x run_workflow.sh
+
+## add the path to the script to your global path
+export PATH=/path/to/functional_CRISPR_screen/:$PATH
+
+## adding the line above to your .bashrc/.zshrc will keep executable status of the script
+echo 'export PATH=/path/to/functional_CRISPR_screen/:$PATH' >> ~/.bashrc
 ```
+
+Now you should be able to just type the name of the script into your terminal and press enter and the pipeline will run. 
+
+```bash
+run_workflow.sh
+```
+*Note: If you run the commands above and you're still getting an error, attempt the same steps with the functional_CRISPR_screen.py script instead.*
 
 You don't need to use the `run_snakemake.sh` script if you don't want to and can put the `functional_CRISPR_screen.py` command and parameters directly in the terminal. You'll know that the pipeline is successfully running once the text you see below is printed to your terminal.
 
