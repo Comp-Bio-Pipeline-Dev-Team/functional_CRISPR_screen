@@ -1,25 +1,42 @@
 # functional_CRISPR_screen
+
 Automated pipeline for functional CRISPR screen analyses
 
+## Workflow Overview
+
+![](workflow/report/plots/workflow_flowchart.png)
+
+| Workflow Step                            | Why we do this                                                                                                                                                                              |
+|------------------------|-----------------------------------------------|
+| 1: Quality Check                         | Done to assess the overall quality of the sequences we received prior to additional analysis.                                                                                               |
+| 2: Raw Sequence Prep (trimming)          | To trim all found sequences from the 5' end to 20 base pairs (bp) in length based on the vector sequence of the library that was used. All sgRNA sequences should be about 20 bp in length. |
+| 3: Sequence Alignment                    | To map the trimmed sgRNA sequences to the associated library that they were prepped with to see which sgRNA sequences are present.                                                          |
+| 4: Counting sgRNA Sequences              | To count how many sgRNA sequences and genes mapped to the sgRNA index for each sample.                                                                                                      |
+| 5: Combining sgRNA Count Files           | To combine the sgRNA count data for each sample into one file for downstream R comparison analysis.                                                                                         |
+| 6: Normalizing Combined sgRNA Count File | To generate all needed files to perform PCA, total/transformed count, and correlation R analysis. sgRNA and gene count data are normalized to counts per million (CPM).                     |
+| 7: PCA Analysis                          | Plotted at the sgRNA and gene level to see if biological replicates cluster together as they should.                                                                                        |
+| 8: Total/Transformed Count Comparison    | Plotted at the sgRNA and gene level to ensure that biological replicates have about the same distribution of counts.                                                                        |
+| 9: Correlation Comparison                | Plotted at the sgRNA and gene level to ensure that biological group replicates correlate more closely with each other than replicates in a different biological group.                      |
+
 ## Installation
+
 Information on how to pull the automated pipeline off of GitHub to your local computer and get it running on your own functional CRISPR screen data!!
 
-These instructions have a few assumptions:
-1. That you already have conda or a conda-like entity (micromamba, mambaforge, miniconda, etc.) installed on your local computer (if you don't have this installed, [do so now](https://github.com/conda-forge/miniforge))
-2. That you have [git](https://github.com/git-guides/install-git) installed on your local computer
-3. That you have [snakemake](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) installed in a conda environment (preferrably one that only contains snakemake)
+These instructions have a few assumptions: 1. That you already have conda or a conda-like entity (micromamba, mambaforge, miniconda, etc.) installed on your local computer (if you don't have this installed, [do so now](https://github.com/conda-forge/miniforge)) 2. That you have [git](https://github.com/git-guides/install-git) installed on your local computer 3. That you have [snakemake](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) installed in a conda environment (preferrably one that only contains snakemake)
 
 ### Step 1:
+
 On your local computer, navigate to where you'd like the directory for the automated pipeline to live. If you don't do this, GitHub will clone the repository to wherever you currently are in your file system when you call `git clone` (which you don't want, or maybe you do, I don't know your life). Then type this command in your terminal:
 
-```bash
+``` bash
 git clone https://github.com/Comp-Bio-Pipeline-Dev-Team/functional_CRISPR_screen.git
 ```
 
 ### Step 2:
+
 When the command finishes, a directory titled `functional_CRISPR_screen` should exist in your working directory. Navigate into the `functional_CRISPR_screen` directory and open the file titled `run_workflow.sh` via your favorite text editor. The contents of the file should look like so:
 
-```bash
+``` bash
 #!/bin/bash 
 
 functional_CRISPR_screen.py \
@@ -36,17 +53,19 @@ functional_CRISPR_screen.py \
     --dry_run True ## only include this line if you want to dry run the pipeline 
 ```
 
-This script just includes the command line parameters for the pipeline and allows you to easily add file paths to your input sequences, the sgRNA index `.fasta` file, and your metadata file. The input parameters also include the ability to run the pipeline in associated conda environments instead of docker containers and to dry run the pipeline once you put in all parameters to make sure that provided files are located where you said they were. 
+This script just includes the command line parameters for the pipeline and allows you to easily add file paths to your input sequences, the sgRNA index `.fasta` file, and your metadata file. The input parameters also include the ability to run the pipeline in associated conda environments instead of docker containers and to dry run the pipeline once you put in all parameters to make sure that provided files are located where you said they were.
 
 ### Step 3:
-Once you have entered/modified the parameters in `run_workflow.sh` as needed, you can run the pipeline! Make sure that you're still within the `functional_CRISPR_screen` directory when you do this and that you've activated the conda environment containing `snakemake`. 
 
-```bash
+Once you have entered/modified the parameters in `run_workflow.sh` as needed, you can run the pipeline! Make sure that you're still within the `functional_CRISPR_screen` directory when you do this and that you've activated the conda environment containing `snakemake`.
+
+``` bash
 bash run_snakemake.sh
 ```
+
 You don't need to use the `run_snakemake.sh` script if you don't want to and can put the `functional_CRISPR_screen.py` command and parameters directly in the terminal. You'll know that the pipeline is successfully running once the text you see below is printed to your terminal.
 
-```bash
+``` bash
 host: im-super1
 Building DAG of jobs...
 Using shell: /usr/bin/bash
@@ -79,22 +98,47 @@ Execute 5 jobs...
 ## Pipeline Specifics
 
 ### Inputs:
+
 Pipeline inputs and definitions are as follows:
-1. **--raw_seq_dir:** The path to the directory containing the raw sequence `.fastq.gz` files
-2. **--metadata_file:** The path to the metadata file as a `.csv`
-3. **--bowtie_mismatches:** This is set to 0 as a default but can be changed if the user wishes to 
-4. **--vector_seq_used:** The sgRNA vector sequence used in the wet lab experiments
-5. **--vector_seq_minOverlap:** This is set to a default of 10 but can be changed
-6. **--vector_seq_error:** This is set to a deafult of 0.2 but can be changed
-7. **--crispr_sgRNA_index:** The path to the sgRNA index `.fasta` file
-8. **--crispr_sgRNA_index_name:** The name of the sgRNA index that was used (where you got the associated `.fasta` file from)
-9. **--use_conda:** Optional parameter to run the pipeline in conda environments instead of docker containers 
-10. **--dry_run:** Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately 
+
+1\. **--raw_seq_dir:** The path to the directory containing the raw sequence `.fastq.gz` files
+
+2\. **--metadata_file:** The path to the metadata file as a `.csv`
+
+3\. **--bowtie_mismatches:** This is set to 0 as a default but can be changed if the user wishes to
+
+4\. **--vector_seq_used:** The sgRNA vector sequence used in the wet lab experiments
+
+5\. **--vector_seq_minOverlap:** This is set to a default of 10 but can be changed
+
+6\. **--vector_seq_error:** This is set to a default of 0.2 but can be changed
+
+7\. **--crispr_sgRNA_index:** The path to the sgRNA index `.fasta` file
+
+8\. **--crispr_sgRNA_index_name:** The name of the sgRNA index that was used (where you got the associated `.fasta` file from)
+
+9\. **--use_conda:** Optional parameter to run the pipeline in conda environments instead of docker containers
+
+10\. **--dry_run:** Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately
+
+| Parameter                      | Expected Type          | Input Required, Default, or Optional  | Description                                                                                                      |
+|------------------|------------------|------------------|------------------|
+|  --raw_seq_dir            | string of file path    | required                              | The path to the directory containing the raw sequence `.fastq.gz` files                                          |
+| --metadata_file            | string of file path    | required                              | The path to the metadata file as a `.csv`                                                                        |
+| --bowtie_mismatches        | numeric                | default = 0                           | This is set to 0 as a default but can be changed if the user wishes to                                           |
+| --vector_seq_used          | string of the sequence | required                              | The sgRNA vector sequence used in the wet lab experiments                                                        |
+| --vector_seq_minOverlap    | numeric                | default = 10                          | This is set to a default of 10 but can be changed                                                                |
+| --vector_seq_error         | numeric                | default = 0.2                         | This is set to a default of 0.2 but can be changed                                                               |
+| --crispr_sgRNA_index       | string of file path    | required                              | The path to the sgRNA index `.fasta` file                                                                        |
+| --crispr_sgRNA_index_name | string                 | required                              | The name of the sgRNA index that was used (where you got the associated `.fasta` file from)                      |
+| --use_conda               | True (bool)            | optional                              | Optional parameter to run the pipeline in conda environments instead of docker containers                        |
+| --dry_run                  | True (bool)            | optional                              | Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately |
 
 ### Outputs:
+
 Pipeline outputs are contained in a directory named `crispr_screen_out` which should exist in your working directory upon completion of the pipeline. The directory will be structured like so:
 
-```bash
+``` bash
 crispr_screen_out/
 ├── bowtie_aligned
 │   ├── sample1_mismatches_allowed.log
@@ -166,9 +210,8 @@ crispr_screen_out/
     └── transform_count_results.tsv
 ```
 
-To view the functional CRISPR screen analysis overview report, click on `dev_report.html`. All plots and stats are included in the respective `plots` and `qc_files` directories. Any intermediate files made by R are in the `count_output` directory along with the final sgRNA counts table per sample. The raw data at every step of the pipeline is provided for the user under the associated subdirectories with log files for how any given analysis went. 
+To view the functional CRISPR screen analysis overview report, click on `dev_report.html`. All plots and stats are included in the respective `plots` and `qc_files` directories. Any intermediate files made by R are in the `count_output` directory along with the final sgRNA counts table per sample. The raw data at every step of the pipeline is provided for the user under the associated sub-directories with log files for how any given analysis went.
 
 ## Contact Information
-This pipeline was written by Madi Apgar, MS and Tonya Brunetti, PhD of the Department of Microbiology and Immunology at CU Anschutz. If any issues arise, feel free to open an issue on this repository to bring it to our attention. 
 
-
+This pipeline was written by Madi Apgar, MS and Tonya Brunetti, PhD of the Department of Microbiology and Immunology at CU Anschutz. If any issues arise, feel free to open an issue on this repository to bring it to our attention.
