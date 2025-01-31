@@ -22,13 +22,13 @@ Automated pipeline for functional CRISPR screen analyses
 
 Information on how to pull the automated pipeline off of GitHub to your local computer and get it running on your own functional CRISPR screen data!!
 
-These instructions have a few assumptions: 
+**These instructions have a few assumptions:** 
 
-1\. That you already have conda or a conda-like entity (micromamba, mambaforge, miniconda, etc.) installed on your local computer (if you don't have this installed, [do so now](https://github.com/conda-forge/miniforge)) 
+**1\. That you already have conda or a conda-like entity (micromamba, mambaforge, miniconda, etc.) installed on your local computer (if you don't have this installed, [do so now](https://github.com/conda-forge/miniforge))** 
 
-2\. That you have [git](https://github.com/git-guides/install-git) installed on your local computer 
+**2\. That you have [git](https://github.com/git-guides/install-git) installed on your local computer** 
 
-3\. That you have [snakemake v8.27.1](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) installed in a conda environment (preferrably one that only contains snakemake)
+**3\. That you have [snakemake v8.27.1](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) installed in a conda environment (preferrably one that only contains snakemake)**
 
 ### Step 1:
 
