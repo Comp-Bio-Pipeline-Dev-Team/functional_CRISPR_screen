@@ -26,12 +26,12 @@ VECTOR_ERROR = config["vector_seq_error"]
 ## ----ENVIRONMENTS/SINGULARITIES----
 ## conda environments 
 ## will change these to "envs/env.yml" instead of having them installed
-FASTQC_ENV = "envs/fastqc_env.yml"
-MULTIQC_ENV = "envs/multiqc_env.yml"
-CUTADAPT_ENV = "envs/cutadapt_env.yml"
-BOWTIE_ENV = "envs/bowtie_env.yml"
-BBMAP_ENV = "envs/bbmap_env.yml"
-R_ENV = "envs/r_env.yml"
+FASTQC_ENV = "fastqc" ## "envs/fastqc_env.yml"
+MULTIQC_ENV = "multiqc" ## "envs/multiqc_env.yml"
+CUTADAPT_ENV = "cutadapt" ## "envs/cutadapt_env.yml"
+BOWTIE_ENV = "bowtie1" ## "envs/bowtie_env.yml"
+BBMAP_ENV = "bbmap" ## "envs/bbmap_env.yml"
+R_ENV = "r_env_crispr" ## "envs/r_env.yml"
 
 ## singularities (preferred)
 FASTQC_SING = "docker://tbrunetti/functional_crispr_screen:fastqc-v0.12.1"
