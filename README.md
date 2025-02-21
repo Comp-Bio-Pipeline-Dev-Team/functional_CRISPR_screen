@@ -7,7 +7,7 @@ Automated pipeline for functional CRISPR screen analyses
 ![](workflow/report/plots/workflow_flowchart.png)
 
 | Workflow Step                            | Why we do this                                                                                                                                                                              |
-|------------------------|-----------------------------------------------|
+|-------------------------|-----------------------------------------------|
 | 1: Quality Check                         | Done to assess the overall quality of the sequences we received prior to additional analysis.                                                                                               |
 | 2: Raw Sequence Prep (trimming)          | To trim all found sequences from the 5' end to 20 base pairs (bp) in length based on the vector sequence of the library that was used. All sgRNA sequences should be about 20 bp in length. |
 | 3: Sequence Alignment                    | To map the trimmed sgRNA sequences to the associated library that they were prepped with to see which sgRNA sequences are present.                                                          |
@@ -22,13 +22,13 @@ Automated pipeline for functional CRISPR screen analyses
 
 Information on how to pull the automated pipeline off of GitHub to your local computer and get it running on your own functional CRISPR screen data!!
 
-**These instructions have a few assumptions:** 
+**These instructions have a few assumptions:**
 
-**1\. That you already have conda or a conda-like entity (micromamba, mambaforge, miniconda, etc.) installed on your local computer (if you don't have this installed, [do so now](https://github.com/conda-forge/miniforge))** 
+**1. That you already have conda or a conda-like entity (micromamba, mambaforge, miniconda, etc.) installed on your local computer (if you don't have this installed, [do so now](https://github.com/conda-forge/miniforge))**
 
-**2\. That you have [git](https://github.com/git-guides/install-git) installed on your local computer** 
+**2. That you have [git](https://github.com/git-guides/install-git) installed on your local computer**
 
-**3\. That you have [snakemake v8.27.1](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) installed in a conda environment (preferrably one that only contains snakemake)**
+**3. That you have [snakemake v8.27.1](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) installed in a conda environment (preferrably one that only contains snakemake)**
 
 ### Step 1:
 
@@ -46,7 +46,7 @@ When the command finishes, a directory titled `functional_CRISPR_screen` should 
 #!/bin/bash 
 
 functional_CRISPR_screen.py \
-    -c 10 \ ## default
+    --cores 10 \ ## default
     --raw_seq_dir 'directory_with_raw_seqs' \
     --metadata_file 'path_to_metadata_file' \
     --bowtie_mismatches 0 \ ## default
@@ -63,7 +63,7 @@ This script just includes the command line parameters for the pipeline and allow
 
 ### Step 3:
 
-Once you have entered/modified the parameters in `run_workflow.sh` as needed, you can run the pipeline! Make sure that you're still within the `functional_CRISPR_screen` directory when you do this and that you've activated the conda environment containing `snakemake`. 
+Once you have entered/modified the parameters in `run_workflow.sh` as needed, you can run the pipeline! Make sure that you're still within the `functional_CRISPR_screen` directory when you do this and that you've activated the conda environment containing `snakemake`.
 
 You may need to make `run_workflow.sh` executable in your local computer which can be done by running the following commands. You will need to add the path to the directory that `run_workflow.sh` lives in to your global path (the example below will work for Linux and Mac operating systems, check the appropriate documentation if you're doing this on a Windows system).
 
@@ -78,11 +78,12 @@ export PATH=/path/to/functional_CRISPR_screen/:$PATH
 echo 'export PATH=/path/to/functional_CRISPR_screen/:$PATH' >> ~/.bashrc
 ```
 
-Now you should be able to just type the name of the script into your terminal and press enter and the pipeline will run. 
+Now you should be able to just type the name of the script into your terminal and press enter and the pipeline will run.
 
-```bash
+``` bash
 run_workflow.sh
 ```
+
 *Note: If you run the commands above and you're still getting an error, attempt the same steps with the functional_CRISPR_screen.py script instead.*
 
 You don't need to use the `run_snakemake.sh` script if you don't want to and can put the `functional_CRISPR_screen.py` command and parameters directly in the terminal. You'll know that the pipeline is successfully running once the text you see below is printed to your terminal.
@@ -123,38 +124,41 @@ Execute 5 jobs...
 
 Pipeline inputs and definitions are as follows:
 
-1\. **--raw_seq_dir:** The path to the directory containing the raw sequence `.fastq.gz` files
+1\. **--cores:** The number of cores you want dedicated to the analysis, set to 10 as a default but should be changed based on the resources of where you're running the pipeline (i.e. local computer or HPC)
 
-2\. **--metadata_file:** The path to the metadata file as a `.csv`
+2\. **--raw_seq_dir:** The path to the directory containing the raw sequence `.fastq.gz` files
 
-3\. **--bowtie_mismatches:** This is set to 0 as a default but can be changed if the user wishes to
+3\. **--metadata_file:** The path to the metadata file as a `.csv`
 
-4\. **--vector_seq_used:** The sgRNA vector sequence used in the wet lab experiments
+4\. **--bowtie_mismatches:** This is set to 0 as a default but can be changed if the user wishes to
 
-5\. **--vector_seq_minOverlap:** This is set to a default of 10 but can be changed
+5\. **--vector_seq_used:** The sgRNA vector sequence used in the wet lab experiments
 
-6\. **--vector_seq_error:** This is set to a default of 0.2 but can be changed
+6\. **--vector_seq_minOverlap:** This is set to a default of 10 but can be changed
 
-7\. **--crispr_sgRNA_index:** The path to the sgRNA index `.fasta` file
+7\. **--vector_seq_error:** This is set to a default of 0.2 but can be changed
 
-8\. **--crispr_sgRNA_index_name:** The name of the sgRNA index that was used (where you got the associated `.fasta` file from)
+8\. **--crispr_sgRNA_index:** The path to the sgRNA index `.fasta` file
 
-9\. **--use_conda:** Optional parameter to run the pipeline in conda environments instead of docker containers
+9\. **--crispr_sgRNA_index_name:** The name of the sgRNA index that was used (where you got the associated `.fasta` file from)
 
-10\. **--dry_run:** Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately
+10\. **--use_conda:** Optional parameter to run the pipeline in conda environments instead of docker containers
 
-| Parameter                      | Expected Type          | Input Required, Default, or Optional  | Description                                                                                                      |
+11\. **--dry_run:** Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately
+
+| Parameter                 | Expected Type          | Input Required, Default, or Optional | Description                                                                                                      |
 |------------------|------------------|------------------|------------------|
-|  --raw_seq_dir            | string of file path    | required                              | The path to the directory containing the raw sequence `.fastq.gz` files                                          |
-| --metadata_file            | string of file path    | required                              | The path to the metadata file as a `.csv`                                                                        |
-| --bowtie_mismatches        | numeric                | default = 0                           | This is set to 0 as a default but can be changed if the user wishes to                                           |
-| --vector_seq_used          | string of the sequence | required                              | The sgRNA vector sequence used in the wet lab experiments                                                        |
-| --vector_seq_minOverlap    | numeric                | default = 10                          | This is set to a default of 10 but can be changed                                                                |
-| --vector_seq_error         | numeric                | default = 0.2                         | This is set to a default of 0.2 but can be changed                                                               |
-| --crispr_sgRNA_index       | string of file path    | required                              | The path to the sgRNA index `.fasta` file                                                                        |
-| --crispr_sgRNA_index_name | string                 | required                              | The name of the sgRNA index that was used (where you got the associated `.fasta` file from)                      |
-| --use_conda               | True (bool)            | optional                              | Optional parameter to run the pipeline in conda environments instead of docker containers                        |
-| --dry_run                  | True (bool)            | optional                              | Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately |
+| --cores                   | numeric                | default = 10                         | The number of cores you want dedicated to the analysis, default of 10                                            |
+| --raw_seq_dir             | string of file path    | required                             | The path to the directory containing the raw sequence `.fastq.gz` files                                          |
+| --metadata_file           | string of file path    | required                             | The path to the metadata file as a `.csv`                                                                        |
+| --bowtie_mismatches       | numeric                | default = 0                          | This is set to a default of 0 but can be changed                                                                 |
+| --vector_seq_used         | string of the sequence | required                             | The sgRNA vector sequence used in the wet lab experiments                                                        |
+| --vector_seq_minOverlap   | numeric                | default = 10                         | This is set to a default of 10 but can be changed                                                                |
+| --vector_seq_error        | numeric                | default = 0.2                        | This is set to a default of 0.2 but can be changed                                                               |
+| --crispr_sgRNA_index      | string of file path    | required                             | The path to the sgRNA index `.fasta` file                                                                        |
+| --crispr_sgRNA_index_name | string                 | required                             | The name of the sgRNA index that was used (where you got the associated `.fasta` file from)                      |
+| --use_conda               | True (bool)            | optional                             | Optional parameter to run the pipeline in conda environments instead of docker containers                        |
+| --dry_run                 | True (bool)            | optional                             | Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately |
 
 ### Outputs:
 
