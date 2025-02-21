@@ -1,0 +1,506 @@
+import pandas as pd
+import os
+
+## ----USER PROVIDED INPUTS----
+## via the config paramter in run_snakemake.sh
+metadata_csv = pd.read_csv(config["metadata_file"])
+SAMPLE_PREFIX = metadata_csv["sampleid"]
+
+RAW_SEQ_IN = config["raw_seq_in"]
+BOWTIE_MISMATCHES = config["bowtie_mismatches"]
+METADATA = config["metadata_file"]
+BOWTIE_INDEX_FASTA = config["crispr_sgRNA_index"] 
+BOWTIE_INDEX_NAME = config["crispr_sgRNA_index_name"]
+
+## building the full file path of the bowtie index based on the name given by user
+BOWTIE_INDEX_DIR = os.path.join("reference_data", BOWTIE_INDEX_NAME)
+BOWTIE_INDEX = os.path.join(BOWTIE_INDEX_DIR, BOWTIE_INDEX_NAME)
+
+
+## ----CUTADAPT VECTOR VARIABLES----
+VECTOR_BP = config["vector_seq_used"]
+## these will be editable defaults 
+VECTOR_MIN_OVERLP = config["vector_seq_minOverlap"]
+VECTOR_ERROR = config["vector_seq_error"]
+
+## ----ENVIRONMENTS/SINGULARITIES----
+## conda environments 
+## will change these to "envs/env.yml" instead of having them installed
+FASTQC_ENV = "envs/fastqc_env.yml"
+MULTIQC_ENV = "envs/multiqc_env.yml"
+CUTADAPT_ENV = "envs/cutadapt_env.yml"
+BOWTIE_ENV = "envs/bowtie_env.yml"
+BBMAP_ENV = "envs/bbmap_env.yml"
+R_ENV = "envs/r_env.yml"
+
+## singularities (preferred)
+FASTQC_SING = "docker://tbrunetti/functional_crispr_screen:fastqc-v0.12.1"
+MULTIQC_SING = "docker://tbrunetti/functional_crispr_screen:multiqc-v1.16"
+CUTADAPT_SING = "docker://tbrunetti/functional_crispr_screen:cutadapt-v4.2"
+BOWTIE_SING = "docker://tbrunetti/functional_crispr_screen:bowtie1-v1.3.1"
+BBMAP_SING = "docker://tbrunetti/functional_crispr_screen:bbmap-v39.08"
+R_SING = "docker://tbrunetti/functional_crispr_screen:r_env_crispr-v4.3.3" 
+QUARTO_SING = "docker://tbrunetti/functional_crispr_screen:quarto-v1.6.40"
+UBUNTU_SING = "docker://tbrunetti/functional_crispr_screen:ubuntu-v24.04"
+
+## ----WORKFLOW----
+## only need to use `expand` in rule all 
+rule all:
+    input:
+        "crispr_screen_out/fastqc_outputs/",
+        "crispr_screen_out/multiqc_outputs/fastqc_crispr_screen.html",
+        expand("crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz", 
+                sample_prefix = SAMPLE_PREFIX),
+        expand("crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz",
+                sample_prefix = SAMPLE_PREFIX),
+        ## idk if this will work the way that I want it to...it did!!
+        BOWTIE_INDEX_DIR,
+        expand("crispr_screen_out/bowtie_unaligned/{sample_prefix}_mismatches_allowed_unaligned.sam",
+               sample_prefix=SAMPLE_PREFIX),
+        expand("crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.sam",
+               sample_prefix=SAMPLE_PREFIX),
+        expand("crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.log",
+                sample_prefix=SAMPLE_PREFIX),
+        expand("crispr_screen_out/count_output/{sample_prefix}_counts.txt",
+                sample_prefix=SAMPLE_PREFIX),
+        expand("crispr_screen_out/count_output/{sample_prefix}_bbpileup.log",
+                sample_prefix=SAMPLE_PREFIX),
+        "crispr_screen_out/count_output/allSample_counts.tsv",
+        "crispr_screen_out/count_output/allSample_counts_long.tsv",
+        "crispr_screen_out/count_output/allSample_sgRNAcounts_wide.tsv",
+        "crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv",
+        "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv",
+        "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv",
+        "crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
+        "workflow/report/plots/sgRNACount_PCA_plot.png",
+        "crispr_screen_out/plots/geneCount_PCA_plot.pdf",
+        "workflow/report/plots/geneCount_PCA_plot.png",
+        "crispr_screen_out/qc_files/sgRNACount_PCA_results.tsv",
+        "crispr_screen_out/qc_files/geneCount_PCA_results.tsv",
+        "crispr_screen_out/plots/sample_totalCount_plot.pdf",
+        "workflow/report/plots/sample_totalCount_plot.png",
+        "crispr_screen_out/plots/sample_transCounts_plot.pdf",
+        "workflow/report/plots/sample_transCounts_plot.png",
+        "crispr_screen_out/qc_files/total_count_results.tsv",
+        "crispr_screen_out/qc_files/transform_count_results.tsv",
+        "crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf",
+        "workflow/report/plots/sgRNACount_correlationMatrix.png",
+        "crispr_screen_out/plots/geneCount_correlationMatrix.pdf",
+        "workflow/report/plots/geneCount_correlationMatrix.png",
+        "crispr_screen_out/qc_files/sgRNACount_correlation_results.tsv",
+        "crispr_screen_out/qc_files/geneCount_correlation_results.tsv",
+        expand("workflow/report/summary_stats/{sample_prefix}_overall_stats.tsv",
+                sample_prefix=SAMPLE_PREFIX),
+        "crispr_screen_out/qc_files/sample_summary_stat_table.tsv",
+        "workflow/report/summary_stats/sample_summary_stat_table.tsv",
+        "crispr_screen_out/dev_report.html"
+        
+
+
+
+
+## STEP 0: running fastqc and multiqc
+## update everything that should be a path with a forward slash
+## this step runs fine!
+rule run_fastqc:
+    input:
+        inDir = RAW_SEQ_IN
+    output:
+        outDir = directory("crispr_screen_out/fastqc_outputs/")
+    singularity:
+        FASTQC_SING
+    conda:
+        FASTQC_ENV
+    params:
+        thread_n = 8
+    shell:
+        """
+        echo "running fastqc"
+
+        mkdir {output.outDir}
+
+        fastqc {input.inDir}/*.fastq.gz -o {output.outDir} --threads {params.thread_n}
+        """
+
+
+rule run_multiqc:
+    input:
+        inDir = "crispr_screen_out/fastqc_outputs/"
+    output:
+        fastq_report_out = "crispr_screen_out/multiqc_outputs/fastqc_crispr_screen.html"
+    singularity:
+        MULTIQC_SING
+    conda:
+        MULTIQC_ENV
+    params:
+        multiqc_dir = "crispr_screen_out/multiqc_outputs/",
+        multiqc_filename = "fastqc_crispr_screen.html"
+    shell:
+        """
+        echo "running multiqc"
+        
+        multiqc {input.inDir} -o {params.multiqc_dir} --filename {params.multiqc_filename} .
+        """
+
+## STEP 1: running cutadapt
+## specify how many samples can be run at the same time - config spec. w default 
+## this step runs fine!
+## print("{}.testing{}.txt".format(var1, var2)) or f strings to edit the vector sequence - may not need the print statement
+## around it 
+rule run_cutadapt:
+    input:
+        in_samples = os.path.join(RAW_SEQ_IN, "{sample_prefix}_R1_001.fastq.gz")
+    output:
+        out_samples = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz",
+        out_untrimmed = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz"
+    singularity:
+        CUTADAPT_SING
+    conda:
+        CUTADAPT_ENV
+    params:
+        vector_seq = "\"{};min_overlap={};e={}\"".format(VECTOR_BP, VECTOR_MIN_OVERLP, VECTOR_ERROR),
+        guide_length = 20,
+        tmp_out = "crispr_screen_out/cutadapt_outputs/tmp_{sample_prefix}.fastq.gz"
+    shell:
+        """
+        cutadapt -g {params.vector_seq} \
+                 --length={params.guide_length} \
+                 --untrimmed-output {output.out_untrimmed} \
+                 -o {output.out_samples} {input.in_samples}
+        
+        ##untrimmed output
+        cutadapt -g {params.vector_seq} \
+                 --untrimmed-output {output.out_untrimmed} \
+                 -o {params.tmp_out} {input.in_samples} 
+        
+        rm {params.tmp_out}
+        """
+
+
+## STEP 2: running bowtie1 
+## idk how snakemake is going to do with this so will probs have to debug 
+rule build_bowtie_index:
+    input:
+        sgRNA_index_fasta = BOWTIE_INDEX_FASTA
+    output:
+        built_sgRNA_index_dir = directory(BOWTIE_INDEX_DIR)
+    singularity:
+        BOWTIE_SING
+    conda:
+        BOWTIE_ENV
+    params:
+        n_threads = 2,
+        built_sgRNA_index = BOWTIE_INDEX
+    shell:
+        """
+        mkdir {output.built_sgRNA_index_dir}
+        
+        bowtie-build \
+            --threads {params.n_threads} \
+            {input.sgRNA_index_fasta} \
+            {params.built_sgRNA_index}
+        """
+
+
+rule run_bowtie:
+    input:
+        in_samples = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz"
+    output:
+        unaligned_out = "crispr_screen_out/bowtie_unaligned/{sample_prefix}_mismatches_allowed_unaligned.sam",
+        aligned_out = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.sam"
+    ## can specify log outputs here
+    log:
+        log = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.log"
+    singularity:
+        BOWTIE_SING
+    conda:
+        BOWTIE_ENV
+    params:
+        mismatches = BOWTIE_MISMATCHES,
+        bowtie_index = BOWTIE_INDEX
+    shell:
+        """
+        bowtie -p 4 \
+                -x {params.bowtie_index} \
+                -q {input.in_samples} \
+                -S \
+                --no-unal \
+                --trim5 0 \
+                --trim3 0 \
+                --best \
+                --strata \
+                -m 1 \
+                --un {output.unaligned_out} \
+                -v {params.mismatches} \
+                > {output.aligned_out} \
+                2>{log.log}
+        """
+
+## STEP 3: counting guides in bbmap
+## the log file is typically empty with everything in the err file - should we just have a log file?
+rule run_bbmap:
+    input:
+        in_samples = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.sam"
+    output:
+        count_out = "crispr_screen_out/count_output/{sample_prefix}_counts.txt"
+    log:
+        log = "crispr_screen_out/count_output/{sample_prefix}_bbpileup.log"
+    singularity:
+        BBMAP_SING
+    conda:
+        BBMAP_ENV
+    params:
+        bbmap_pileup = "pileup.sh"
+    shell:
+        """
+        {params.bbmap_pileup} in={input.in_samples} \
+                              out={output.count_out} \
+                              2>{log.log}
+        """
+
+## any bash variables in curly brackets in the snakemake shell need to be escaped (double brackets instead of single)
+rule prep_count_files:
+    input:
+        decoy_in = expand("crispr_screen_out/count_output/{sample_prefix}_counts.txt",
+                           sample_prefix=SAMPLE_PREFIX)
+    output:
+        combined_count_file = "crispr_screen_out/count_output/allSample_counts.tsv"
+    singularity:
+        UBUNTU_SING
+    params:
+        inDir = "crispr_screen_out/count_output/",
+        out_file_name = "allSample_counts.tsv"
+    shell:
+        """
+        cd {params.inDir}
+
+        file_list=( $(ls *counts.txt | sed 's/_counts.txt//g') )
+
+        for f in ${{file_list[*]}};
+            do 
+                awk 'NR == 1 {{print $0 "\tsampleid"; next;}}{{print $0 "\t" FILENAME;}}' ${{f}}_counts.txt > ${{f}}_counts_final.txt;
+            done
+
+        awk 'NR==FNR||FNR>1' *_counts_final.txt >> {params.out_file_name}
+        """
+
+## THE START OF R ANALYSIS
+rule normalize_counts:
+    input:
+        comb_count_table = "crispr_screen_out/count_output/allSample_counts.tsv",
+        metadata_file = METADATA
+    output:
+        comb_countLong_out = "crispr_screen_out/count_output/allSample_counts_long.tsv",
+        sgRNA_counts_wide = "crispr_screen_out/count_output/allSample_sgRNAcounts_wide.tsv",
+        norm_sgRNA_counts = "crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv",
+        gene_counts_wide = "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv",
+        norm_gene_counts = "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv"
+    singularity:
+        R_SING
+    conda:
+        R_ENV
+    params:
+        r_src_location = workflow.source_path("src/normalize_counts.R")
+    shell:
+        """
+        Rscript {params.r_src_location} --comb_count_table {input.comb_count_table} \
+                                       --metadata {input.metadata_file} \
+                                       --comb_countLong_out {output.comb_countLong_out} \
+                                       --sgRNA_counts_wide {output.sgRNA_counts_wide} \
+                                       --norm_sgRNA_counts {output.norm_sgRNA_counts} \
+                                       --gene_counts_wide {output.gene_counts_wide} \
+                                       --norm_gene_counts {output.norm_gene_counts}
+        """
+
+rule run_pca:
+    input:
+        metadata_file = METADATA,
+        norm_sgRNA_counts = "crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv",
+        norm_gene_counts = "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv"
+    output:
+        sgRNA_PCA_pdf = "crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
+        sgRNA_PCA_png = "workflow/report/plots/sgRNACount_PCA_plot.png",
+        gene_PCA_pdf = "crispr_screen_out/plots/geneCount_PCA_plot.pdf",
+        gene_PCA_png = "workflow/report/plots/geneCount_PCA_plot.png", 
+        sgRNA_PCA_table = "crispr_screen_out/qc_files/sgRNACount_PCA_results.tsv",
+        gene_PCA_table = "crispr_screen_out/qc_files/geneCount_PCA_results.tsv"
+    singularity:
+        R_SING
+    conda:
+        R_ENV
+    params:
+        r_src_location = workflow.source_path("src/run_pca.R")
+    shell:
+        """
+        Rscript {params.r_src_location} --metadata {input.metadata_file} \
+                              --norm_sgRNA_counts {input.norm_sgRNA_counts} \
+                              --norm_gene_counts {input.norm_gene_counts} \
+                              --sgRNA_PCA_pdf {output.sgRNA_PCA_pdf} \
+                              --sgRNA_PCA_png {output.sgRNA_PCA_png} \
+                              --gene_PCA_pdf {output.gene_PCA_pdf} \
+                              --gene_PCA_png {output.gene_PCA_png} \
+                              --sgRNA_PCA_table {output.sgRNA_PCA_table} \
+                              --gene_PCA_table {output.gene_PCA_table}
+        """
+
+
+rule run_total_transform_counts:
+    input:
+        comb_countLong_table = "crispr_screen_out/count_output/allSample_counts_long.tsv",
+        metadata_file = METADATA
+    output:
+        total_count_pdf = "crispr_screen_out/plots/sample_totalCount_plot.pdf",
+        total_count_png = "workflow/report/plots/sample_totalCount_plot.png",
+        trans_count_pdf = "crispr_screen_out/plots/sample_transCounts_plot.pdf",
+        trans_count_png = "workflow/report/plots/sample_transCounts_plot.png",
+        total_count_table = "crispr_screen_out/qc_files/total_count_results.tsv",
+        trans_count_table = "crispr_screen_out/qc_files/transform_count_results.tsv"
+    singularity:
+        R_SING
+    conda:
+        R_ENV
+    params:
+        r_src_location = workflow.source_path("src/run_totalTransform_counts.R")
+    shell:
+        """
+        Rscript {params.r_src_location} --comb_countLong_table {input.comb_countLong_table} \
+                                                --metadata {input.metadata_file} \
+                                                --total_count_pdf {output.total_count_pdf} \
+                                                --total_count_png {output.total_count_png} \
+                                                --trans_count_pdf {output.trans_count_pdf} \
+                                                --trans_count_png {output.trans_count_png} \
+                                                --total_count_table {output.total_count_table} \
+                                                --trans_count_table {output.trans_count_table}
+        """
+
+
+rule run_correlation:
+    input:
+        sgRNA_counts_wide = "crispr_screen_out/count_output/allSample_sgRNAcounts_wide.tsv",
+        gene_counts_wide = "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv" 
+    output:
+        sgRNA_corr_pdf = "crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf",
+        sgRNA_corr_png = "workflow/report/plots/sgRNACount_correlationMatrix.png",
+        gene_corr_pdf = "crispr_screen_out/plots/geneCount_correlationMatrix.pdf",
+        gene_corr_png = "workflow/report/plots/geneCount_correlationMatrix.png",
+        sgRNA_corr_table = "crispr_screen_out/qc_files/sgRNACount_correlation_results.tsv",
+        gene_corr_table = "crispr_screen_out/qc_files/geneCount_correlation_results.tsv"
+    singularity:
+        R_SING
+    conda:
+        R_ENV
+    params:
+        r_src_location = workflow.source_path("src/run_correlation.R")
+    shell:
+        """
+        Rscript {params.r_src_location} --sgRNA_counts_wide {input.sgRNA_counts_wide} \
+                                      --gene_counts_wide {input.gene_counts_wide} \
+                                      --sgRNA_corr_pdf {output.sgRNA_corr_pdf} \
+                                      --sgRNA_corr_png {output.sgRNA_corr_png} \
+                                      --gene_corr_pdf {output.gene_corr_pdf} \
+                                      --gene_corr_png {output.gene_corr_png} \
+                                      --sgRNA_corr_table {output.sgRNA_corr_table} \
+                                      --gene_corr_table {output.gene_corr_table}
+        """
+
+
+## THINGS NEEDED FOR REPORT GENERATION
+rule assemble_stat_table:
+    input:
+        raw_file = os.path.join(RAW_SEQ_IN, "{sample_prefix}_R1_001.fastq.gz"),
+        index_fasta_file = BOWTIE_INDEX_FASTA,
+        trimmed_file = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz",
+        untrimmed_file = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz",
+        bowtie_log = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.log",
+        counts_file = "crispr_screen_out/count_output/{sample_prefix}_counts.txt"
+    output:
+        sample_stat_out = "workflow/report/summary_stats/{sample_prefix}_overall_stats.tsv"
+    singularity:
+        UBUNTU_SING
+    params:
+        samples = lambda wc: wc.get("sample_prefix")
+    shell:
+        """
+        percent=$(printf '%%')
+        left_paren=$(printf '(')
+        right_paren=$(printf ')')
+        tab=$(printf '\t')
+        library_sgRNAs=$(grep "^>" {input.index_fasta_file} | wc -l)
+
+        sampleid={params.samples}
+
+        total_num_reads=$(gzcat {input.raw_file} | awk 'END{{print NR/4}}')
+
+        reads_with_vector_num=$(gzcat {input.trimmed_file} | awk 'END{{print NR/4}}')
+        reads_with_vector_perc=$(echo "($reads_with_vector_num/$total_num_reads)*100" | bc -l | xargs printf "%.2f")
+        reads_with_vector=$(echo $reads_with_vector_num $left_paren$reads_with_vector_perc$percent$right_paren)
+
+        reads_with_noVector_num=$(gzcat {input.untrimmed_file} | awk 'END{{print NR/4}}')
+        reads_with_noVector_perc=$(echo "($reads_with_noVector_num/$total_num_reads)*100" | bc -l | xargs printf "%.2f")
+        reads_with_noVector=$(echo $reads_with_noVector_num $left_paren$reads_with_noVector_perc$percent$right_paren)
+
+        reads_mapped_sgRNA=$(grep "reads with at least one alignment:" {input.bowtie_log} | sed 's/# reads with at least one alignment: //g')
+        reads_notMapped_sgRNA=$(grep "reads that failed to align:" {input.bowtie_log} | sed 's/# reads that failed to align: //g')
+        reads_suppMapped_sgRNA=$(grep "reads with alignments suppressed due to -m:" {input.bowtie_log} | sed 's/# reads with alignments suppressed due to -m: //g')
+
+        total_sgRNA_num=$(awk '$7 != 0 {{print $7}}' {input.counts_file} | wc -l)
+        total_sgRNA_perc=$(echo "($total_sgRNA_num/$library_sgRNAs)*100" | bc -l | xargs printf "%.2f")
+        total_sgRNA=$(echo $total_sgRNA_num $left_paren$total_sgRNA_perc$percent$right_paren)
+
+        sgRNA_moreThan_10_num=$(awk '$7 >= 10 {{print $7}}' {input.counts_file} | wc -l)
+        sgRNA_moreThan_10_perc=$(echo "($sgRNA_moreThan_10_num/$library_sgRNAs)*100" | bc -l | xargs printf "%.2f")
+        sgRNA_moreThan_10=$(echo $sgRNA_moreThan_10_num $left_paren$sgRNA_moreThan_10_perc$percent$right_paren)
+
+        echo "$sampleid$tab$total_num_reads$tab$reads_with_vector$tab$reads_with_noVector$tab$reads_mapped_sgRNA$tab$reads_notMapped_sgRNA$tab$reads_suppMapped_sgRNA$tab$total_sgRNA$tab$sgRNA_moreThan_10" > {output.sample_stat_out}
+        """
+
+
+rule combine_stat_table:
+    input:
+        cols_in = "workflow/report/summary_stats/stat_table_cols.tsv",
+        samples_in = expand("workflow/report/summary_stats/{sample_prefix}_overall_stats.tsv",
+                            sample_prefix=SAMPLE_PREFIX)
+    output:
+        combined_stat_out = "crispr_screen_out/qc_files/sample_summary_stat_table.tsv",
+        report_stat_out = "workflow/report/summary_stats/sample_summary_stat_table.tsv"
+    singularity:
+        UBUNTU_SING
+    shell:
+        """
+        cat {input.cols_in} {input.samples_in} > {output.combined_stat_out}
+
+        cp {output.combined_stat_out} {output.report_stat_out}
+        """
+
+
+## need to test this..i'm not sure how its going to go 
+rule render_report:
+    input:
+        sgRNA_PCA_png = "workflow/report/plots/sgRNACount_PCA_plot.png",
+        gene_PCA_png = "workflow/report/plots/geneCount_PCA_plot.png",
+        total_count_png = "workflow/report/plots/sample_totalCount_plot.png",
+        trans_count_png = "workflow/report/plots/sample_transCounts_plot.png",
+        sgRNA_corr_png = "workflow/report/plots/sgRNACount_correlationMatrix.png",
+        gene_corr_png = "workflow/report/plots/geneCount_correlationMatrix.png",
+        combined_stat_table = "workflow/report/summary_stats/sample_summary_stat_table.tsv",
+        report_doc = "workflow/report/dev_report.qmd"
+    output:
+        report_copy = "crispr_screen_out/dev_report.html"
+    singularity:
+        QUARTO_SING
+    conda:
+        R_ENV
+    params:
+        bowtie_mismatches = BOWTIE_MISMATCHES,
+        report_vars = "workflow/report/_variables.yml",
+        report_html = "workflow/report/dev_report.html",
+        report_location = "crispr_screen_out/"
+    shell:
+        """
+        printf "bowtie_mismatches: {params.bowtie_mismatches}" > {params.report_vars}
+
+        quarto render {input.report_doc}
+
+        ## may need to do something to how crispr_screen_out is referenced
+        cp {params.report_html} {params.report_location} 
+        """ 

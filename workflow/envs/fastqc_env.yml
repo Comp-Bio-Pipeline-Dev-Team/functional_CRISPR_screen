@@ -1,0 +1,11 @@
+name: fastqc
+channels:
+  - bioconda
+  - conda-forge
+  - anaconda
+dependencies:
+  - python=3.13.1
+  - fastqc=0.12.1
+  - pip
+  - pip:
+    - snakemake==8.27.1

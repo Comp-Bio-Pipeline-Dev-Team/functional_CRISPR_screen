@@ -1,0 +1,632 @@
+---
+title: "count_file_wrangling"
+output: html_document
+date: "2024-10-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(broom)
+library(magrittr)
+library(edgeR)
+library(stats)
+##library(corrplot)
+##library(corrr)
+library(cowplot)
+library(gridExtra)
+library(egg)
+library(ggh4x)
+```
+
+**Functions**
+```{r}
+## reads in .txt file and adds a column with the sampleid so all table can be combined later 
+## don't need this anymore since I do it in bash
+add_sampleid <- function(filepath,
+                         wanted_sampleid){
+  ## reading in file
+  counts_table <- read_tsv(filepath) %>% 
+    mutate(sampleid = paste(wanted_sampleid))
+  return(counts_table)
+}
+
+## takes the combined counts table from long to wide format and normalizes it by cpm 
+## we only need the plus read columns !!
+normalize_table <- function(comb_table,
+                            id_col,
+                            sample_order){
+  
+  if (id_col == 'gene_id') {
+    comb_table <- comb_table %>% 
+      group_by(gene_id, sampleid) %>% 
+      summarise(reads_per_gene = sum(Plus_reads))
+    
+    reads_col <- 'reads_per_gene'
+  } else {
+    reads_col <- 'Plus_reads'
+  }
+  
+  ## selected the Plus_reads column
+  ## taking the tibble from long to wide format w the sampleids as the columns
+  comb_table_wide_df <- comb_table %>% 
+                          select(all_of(id_col), all_of(reads_col), sampleid) %>% 
+                          spread(sampleid, .data[[reads_col]]) %>% 
+                          select(all_of(id_col), all_of(sample_order)) %>% 
+                          remove_rownames() %>% 
+                          column_to_rownames(var = id_col)
+  
+  comb_table_wide_df["sum_cols"] <- rowSums(comb_table_wide_df)
+  comb_table_wide_df <- subset(comb_table_wide_df,
+                               sum_cols != 0,
+                               select = -sum_cols)
+  
+  ## cpm won't work if the data frame contains any categorical values 
+  norm_combTable_df <- edgeR::cpm(comb_table_wide_df)
+  norm_combTable_df <- as.data.frame(norm_combTable_df)
+  
+  ## creating a list of outputs
+  my_list <- list(NonNormTable = comb_table_wide_df,
+                  NormTable = norm_combTable_df)
+  return(my_list)
+}
+
+## takes normalized counts table and conducts a pca analysis
+## outputs the pca table and plot
+run_pca <- function(norm_df,
+                    metadata_df,
+                    sample_col,
+                    fill_by_col,
+                    point_size,
+                    point_alpha,
+                    brewer_palette,
+                    legend_title,
+                    plot_title){
+  ## running principal component analysis 
+  count_pca_results <- prcomp(t(norm_df),
+                              center = TRUE,
+                              scale. = TRUE)
+
+  ## pulling actual PCA values out of the object
+  count_pca_table <- count_pca_results$x %>% 
+    as_tibble(rownames = sample_col, optional = TRUE) %>% 
+    left_join(metadata_df, by = sample_col)
+  
+  ## pulling out variance explained for PC1 and PC2
+  ## want to pull out the proportion of variance 
+  pre_varExp <- summary(count_pca_results)
+  pca_varExp <- pre_varExp$importance[2,]
+  
+  x_lab <- paste0('PC1', '(', as.character(round(pca_varExp[1], digits = 4) * 100), '%)')
+  y_lab <- paste0('PC2', '(', as.character(round(pca_varExp[2], digits = 4) * 100), '%)')
+  
+  ## building actual PCA plot using above data
+  pca_plot <- count_pca_table %>% 
+    ggplot(aes(x = PC1, y = PC2)) +
+    geom_point(aes(fill = .data[[fill_by_col]]), 
+               pch = 21, 
+               size = point_size, 
+               alpha = point_alpha) +
+    theme_bw(base_size = 20) +
+    scale_fill_brewer(palette = brewer_palette,
+                      name = legend_title) +
+    theme(legend.position = 'bottom') +
+    labs(x = x_lab,
+         y = y_lab,
+         title = plot_title)
+  ## creating list of outputs 
+  my_list <- list(PCATable = count_pca_table,
+                  PCAPlot = pca_plot)
+  return(my_list)
+}
+
+## calculates the total amount of sgRNA/gene counts per sample and creates a plot
+## idk if this will be by biological group instead of sample in the future...
+run_total_counts <- function(comb_table,
+                             metadata_df,
+                             sample_col,
+                             fill_by_col,
+                             bar_alpha,
+                             brewer_palette,
+                             legend_title,
+                             x_label,
+                             y_label,
+                             plot_title){
+  ## calculating total counts per sample
+  total_counts_table <- comb_table %>% 
+    select(all_of(sample_col), Plus_reads) %>% 
+    group_by(.data[[sample_col]]) %>% 
+    summarize(total_counts = sum(Plus_reads)) %>% 
+    left_join(metadata_df, by = sample_col) 
+  
+  ## to reorder the x axis so all bio reps are next to each other
+  x_axis_order <- unique(unlist(metadata_df[sample_col]))
+  
+  ## building total counts plot
+  total_counts_plot <- total_counts_table %>% 
+    ggplot(aes(x = .data[[sample_col]], y = total_counts)) +
+    geom_bar(aes(fill = .data[[fill_by_col]]), 
+             stat = 'identity', 
+             color = 'black', 
+             alpha = bar_alpha) +
+    scale_x_discrete(limits = factor(x_axis_order)) +
+    theme_bw(base_size = 20) +
+    scale_fill_brewer(palette = brewer_palette,
+                      name = legend_title) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position = 'bottom') +
+    labs(x = x_label,
+         y = y_label,
+         title = plot_title)
+  ## creating a list of outputs
+  my_list <- list(TotalCountTable = total_counts_table,
+                  TotalCountPlot = total_counts_plot)
+  return(my_list)
+}
+
+## transforms all counts in the Plus_reads column by log2 and builds a plot
+run_transform_counts <- function(comb_table,
+                                 metadata_df,
+                                 sample_col,
+                                 fill_by_col,
+                                 bar_alpha,
+                                 brewer_palette,
+                                 legend_title,
+                                 x_label,
+                                 y_label,
+                                 plot_title){
+  ## log2 transformation
+  transform_count_table <- comb_table %>% 
+    mutate(log2_counts = log2(Plus_reads)) %>% 
+    left_join(metadata_df, by = sample_col)
+  
+  ## to reorder the x axis so all bio reps are next to each other
+  x_axis_order <- unique(unlist(metadata_df[sample_col]))
+  
+  ## plot 
+  transform_count_plot <- transform_count_table %>% 
+    ggplot(aes(x = .data[[sample_col]], y = log2_counts)) +
+    geom_boxplot(aes(group = .data[[sample_col]]), width = 0.5, color = 'black') +
+    geom_violin(aes(fill = .data[[fill_by_col]]), color = 'black', alpha = bar_alpha) +
+    scale_x_discrete(limits = x_axis_order) +
+    theme_bw(base_size = 20) +
+    scale_fill_brewer(palette = brewer_palette,
+                      name = legend_title) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position = 'bottom') +
+    labs(x = x_label,
+         y = y_label,
+         title = plot_title)
+  ## creating list of outputs
+  my_list <- list(TransformCountTable = transform_count_table,
+                  TransformCountPlot = transform_count_plot)
+  return(my_list)
+}
+
+## runs correlation analysis on non-normalized counts data and creates a heat map of results
+run_correlation <- function(wide_count_df,
+                            corr_method,
+                            text_size,
+                            panel_width = NULL,
+                            panel_height = NULL,
+                            legend_bar_height,
+                            legend_text_size,
+                            legend_box_spacing){
+  ## running correlation analysis
+  corr_matrix <- cor(wide_count_df,
+                     method = corr_method)
+
+  proc_corr_matrix <- corr_matrix %>% 
+    as_tibble(rownames = 'group1') %>% 
+    gather(-group1, key = 'group2', value = 'corr_value')
+  
+  ## creating plot 
+  corr_plot <- proc_corr_matrix %>% 
+    ggplot(aes(x = group1, y = group2)) +
+    geom_tile(color = 'black', fill = 'white') +
+    theme_bw(base_size = 20) +
+    geom_text(aes(label = round(corr_value, digits = 2), color = corr_value), 
+              size = text_size,
+              fontface = 'bold') +
+    scale_color_gradientn(colors = hcl.colors(200, 'RdBu'),
+                          limits = c(-1, 1),
+                          breaks = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1),
+                          labels = c(1, 0.8, 0.6, 0.4, 0.2, 0, -0.2, -0.4, -0.6, -0.8, -1)) +
+    scale_x_discrete(position = 'top') +
+    # force_panelsizes(rows = unit(panel_height, 'in'),
+    #                  cols = unit(panel_width, 'in')) +
+    theme(axis.text = element_text(color = 'red'),
+          axis.ticks = element_blank(),
+          axis.title = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(),
+          axis.text.x = element_text(angle = 90, hjust = 0),
+          legend.frame = element_rect(color = 'black', linetype = 'solid', linewidth = 0.25),
+          legend.ticks = element_blank(),
+          legend.text = element_text(size = legend_text_size),
+          legend.title = element_blank(),
+          legend.key.height = unit(legend_bar_height, 'null'),
+          legend.key.width = unit(10, 'pt'),
+          legend.box.spacing = unit(legend_box_spacing, 'cm'),
+          legend.location = "align",
+          legend.justification = "right")
+  
+  ## creating list of outputs
+  my_list <- list(CorrMatrix = corr_matrix,
+                  CorrPlot = corr_plot)
+  return(my_list)
+}
+```
+
+**File paths**
+```{r}
+comb_table_fp <- '../crispr_screen_out/count_output/allSample_counts.tsv'
+meta_fp <- '../metadata.csv'
+```
+
+**Reading in count file**
+reads in .tsv file and edits the sampleid column to only include the sampleid
+```{r}
+comb_table <- read_tsv(comb_table_fp)
+
+comb_table$sampleid <- gsub("*_counts.txt", "", comb_table$sampleid)
+```
+## **Putting together toy metadata**
+need to have a biological_group column (at minimum) in the metadata
+```{r}
+meta <- read_csv(meta_fp)
+
+# set.seed(70)
+# 
+# meta <- pre_meta %>% 
+#   mutate(biological_group = sample(x = c('high', 
+#                                          'low'),
+#                                    size = 4,
+#                                    replace = TRUE))
+
+# write_csv(meta, 
+#           '../metadata.csv')
+
+## arrange the bio reps in the metadata so they're all in order
+## use the new order of the sampleid column to put all bio reps next to each other
+# in the plots
+meta <- meta %>%
+  arrange(biological_group)
+
+meta
+```
+
+## **CPM normalization**
+**Combining all the count tables and normalizing them**
+they're now in counts per million 
+- create another data frame where we collapse the reads per gene - put these through the same downstream analysis/plots 
+- the gene is the first part of the guide before the underscore in the #ID column 
+- number of counts by guide and number of counts by gene (do both for raw and then normalize them)
+```{r}
+comb_counts <- comb_table %>% 
+  rename(sgRNA_id = `#ID`) %>% 
+  select(sgRNA_id, Plus_reads, sampleid) %>% 
+  separate_wider_delim(cols = sgRNA_id,
+                       delim = "_",
+                       names = c("gene_id"),
+                       cols_remove = FALSE,
+                       too_many = 'drop')
+
+comb_counts
+```
+
+```{r}
+meta_sample_order <- unique(unlist(meta$sampleid))
+
+normalize_table(comb_table = comb_counts,
+                id_col = 'sgRNA_id',
+                sample_order = meta_sample_order)
+```
+
+**Normalizing count tables**
+for sgRNA ids 
+```{r}
+sgCount_table_out <- normalize_table(comb_table = comb_counts,
+                                     id_col = 'sgRNA_id',
+                                     sample_order = meta_sample_order)
+
+sgRNA_combCounts_wide_df <- sgCount_table_out$NonNormTable
+sgRNAnorm_combCounts_df <- sgCount_table_out$NormTable
+```
+
+copying the sample columns to create multiple replicates for testing purposes
+```{r}
+sgRNA_combCounts_wide_df %>% 
+  rename(`transE-Pre_S48_L005_rep1` = `transE-Pre_S48_L005`,
+         `transE-Low_S45_L005_rep1` = `transE-Low_S45_L005`,
+         `transE-Medium_S46_L005_rep1` = `transE-Medium_S46_L005`,
+         `transE-High_S47_L005_rep1` = `transE-High_S47_L005`) %>% 
+  mutate(`transE-Pre_S48_L005_rep2` = as.numeric(paste(`transE-Pre_S48_L005_rep1`)),
+         `transE-Pre_S48_L005_rep3` = as.numeric(paste(`transE-Pre_S48_L005_rep1`)),
+         `transE-Low_S45_L005_rep2` = as.numeric(paste(`transE-Low_S45_L005_rep1`)),
+         `transE-Low_S45_L005_rep3` = as.numeric(paste(`transE-Low_S45_L005_rep1`)),
+         `transE-Medium_S46_L005_rep2` = as.numeric(paste(`transE-Medium_S46_L005_rep1`)),
+         `transE-Medium_S46_L005_rep3` = as.numeric(paste(`transE-Medium_S46_L005_rep1`)),
+         `transE-High_S47_L005_rep2` = as.numeric(paste(`transE-High_S47_L005_rep1`)),
+         `transE-High_S47_L005_rep3` = as.numeric(paste(`transE-High_S47_L005_rep1`))) %>% 
+  select(`transE-Pre_S48_L005_rep1`, `transE-Pre_S48_L005_rep2`, `transE-Pre_S48_L005_rep3`,
+         `transE-Low_S45_L005_rep1`, `transE-Low_S45_L005_rep2`, `transE-Low_S45_L005_rep3`,
+         `transE-Medium_S46_L005_rep1`, `transE-Medium_S46_L005_rep2`, `transE-Medium_S46_L005_rep3`,
+         `transE-High_S47_L005_rep1`, `transE-High_S47_L005_rep2`, `transE-High_S47_L005_rep3`) -> test_sgRNA_wide
+```
+
+
+for individual genes
+```{r}
+geneCount_table_out <- normalize_table(comb_table = comb_counts,
+                                       id_col = 'gene_id',
+                                       sample_order = meta_sample_order)
+
+gene_combCounts_wide_df <- geneCount_table_out$NonNormTable
+geneNorm_combCounts_df <- geneCount_table_out$NormTable
+```
+
+## **PCA analysis**
+**Calculating PCA**
+- need to make sure that data is scaled and centered automatically by pca calculation function 
+- need to transpose the normalized counts before they go into prcomp() function 
+
+**PCA plot**
+- need to have biological category parameter for the pca plot eventually (want to see the biological replicates cluster together) - need to be colored by this (biological_group)
+- may save these as an .rdat object as well (for us) - put the raw and normalized (filtered) counts tables, pca obj
+
+```{r}
+test_count_pca_results <- prcomp(t(sgRNAnorm_combCounts_df),
+                              center = TRUE,
+                              scale. = TRUE)
+
+test_count_pca_table <- test_count_pca_results$x %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var = 'sampleid')
+     #as_tibble(rownames = 'sampleid') 
+    # left_join(meta, by = 'sampleid')
+
+test_count_pca_table
+```
+
+
+for sgRNA ids
+```{r, fig.width=8, fig.height=6}
+sgRNA_pca_res <- run_pca(norm_df = sgRNAnorm_combCounts_df,
+                         metadata_df = meta,
+                         sample_col = 'sampleid',
+                         fill_by_col = 'biological_group',
+                         point_size = 3,
+                         point_alpha = 0.6,
+                         brewer_palette = 'Dark2',
+                         legend_title = 'Biological Group',
+                         plot_title = 'sgRNA Count PCA')
+
+sgRNA_count_pcaTable <- sgRNA_pca_res$PCATable
+sgRNA_pca_plot <- sgRNA_pca_res$PCAPlot
+
+sgRNA_pca_plot
+```
+
+for individual genes
+```{r, fig.width=8, fig.height=6}
+gene_pca_res <- run_pca(norm_df = geneNorm_combCounts_df,
+                        metadata_df = meta,
+                        sample_col = 'sampleid',
+                        fill_by_col = 'biological_group',
+                        point_size = 3,
+                        point_alpha = 0.6,
+                        brewer_palette = 'Dark2',
+                        legend_title = 'Biological Group',
+                        plot_title = 'Gene Count PCA')
+
+gene_count_pcaTable <- gene_pca_res$PCATable
+gene_pca_plot <- gene_pca_res$PCAPlot
+
+gene_pca_plot
+```
+
+## **Total counts plot**
+**Calculating total sgRNA/gene counts per sample**
+don't need to do individual ones for sgRNA and gene bc they add up to the same thing!
+- colored by biological group
+- make a copy of the fastqs as fake data 
+- create fake metadata file to set up r scripts 
+```{r, fig.width=9.5, fig.height=8}
+total_counts_res <- run_total_counts(comb_table = comb_counts,
+                                     metadata_df = meta,
+                                     sample_col = 'sampleid',
+                                     fill_by_col = 'biological_group',
+                                     bar_alpha = 0.6,
+                                     brewer_palette = 'Dark2',
+                                     legend_title = 'Biological Group',
+                                     x_label = 'Sample',
+                                     y_label = 'Total Counts',
+                                     plot_title = 'Total sgRNA/Gene Counts per Sample')
+
+total_counts_table <- total_counts_res$TotalCountTable
+total_counts_plot <- total_counts_res$TotalCountPlot
+
+total_counts_plot
+```
+
+## **Transformed sgRNA reads plot**
+**log2 transformed sgRNA reads plot**
+I think its log2 transformed?
+```{r, fig.width=9.5, fig.height=8}
+transform_count_res <- run_transform_counts(comb_table = comb_counts,
+                                            metadata_df = meta,
+                                            sample_col = 'sampleid',
+                                            fill_by_col = 'biological_group',
+                                            bar_alpha = 0.6,
+                                            brewer_palette = 'Dark2',
+                                            legend_title = 'Biological Group',
+                                            x_label = 'Sample',
+                                            y_label = 'log2(Counts)',
+                                            plot_title = 'Transformed sgRNA/Gene Counts')
+
+transform_counts_table <- transform_count_res$TransformCountTable
+transform_counts_plot <- transform_count_res$TransformCountPlot
+
+transform_counts_plot
+```
+
+## **Correlation matrix by sample**
+**Calculating correlation matrix**
+- currently defaulting to pearson correlation, run with both spearman and pearson correlation calculations for now!!
+- pearson doesn't rank samples, makes assumption of continuous variables
+- spearman ranks things (guides) first and compares correlation of the ranking to that of all the other samples (biological replicates should have similar ranking) - deals w ranking rather than actual normalized values 
+- use the spearman correlation!!!
+
+**Correlation matrix plot by sample**
+- i cannot figure out how to make the tick marks go to the labels on the legend so i'm just going to go cry about it 
+- if you change the dimensions, you HAVE to change the height of the legend bar (which is really annoying) - i don't have to do this anymore because im keeping the legend panel size the same !!
+- currently with a 6 x 6 in panel size, the legend.key.height is 1.14 in (ggsave width and height are 10) 1.175 (difference is 0.035)
+- 5 x 5 in panel size, legend.key.height is 0.95 in (ggsave width and height are 9) 0.983 (difference is 0.03)
+- 4 x 4 in panel size, legend.key.height is 0.76 in (ggsave width and height are 8) 0.785 (difference is 0.025)
+- 3 x 3 in panel size, legend.key.height is 0.57 in (ggsave width and height are 7) 0.59 (difference is 0.02)
+- when you go down/up 1in in panel width/height, legend bar height has to go up/down by 0.19in, and overall plot dimensions need to go up/down by 1 (i also think this is in inches)
+- to find the ideal panel dimensions for a certain number of samples: divide the number of samples by 2
+- to match the heatmap legend bar height up with panel size: multiply the panel height by 0.19
+- to find the ideal ggsave plot dimensions: add 1 to the number of samples (maybe)
+
+for sgRNA ids
+```{r, fig.width=13, fig.height=11}
+plot_width <- length(unique(meta$sampleid))/2
+plot_height <- length(unique(meta$sampleid))/2
+##(0.19 * 5) + 0.03
+
+sgRNA_corr_res <- run_correlation(wide_count_df = test_sgRNA_wide,
+                                  corr_method = 'spearman',
+                                  text_size = 5,
+                                  # panel_width = 5,
+                                  # panel_height = 5,
+                                  legend_bar_height = 1,
+                                  legend_text_size = 12,
+                                  legend_box_spacing = 0)
+
+sgRNA_corr_matrix <- as.data.frame(sgRNA_corr_res$CorrMatrix)
+sgRNA_corr_plot <- sgRNA_corr_res$CorrPlot
+
+sgRNA_corr_plot
+```
+
+for individual genes
+```{r, fig.width=11, fig.height=9}
+gene_corr_res <- run_correlation(wide_count_df = gene_combCounts_wide_df,
+                                 corr_method = 'spearman',
+                                 text_size = 5,
+                                 # panel_width = 4,
+                                 # panel_height = 4,
+                                 legend_bar_height = 1,
+                                 legend_text_size = 12,
+                                 legend_box_spacing = -0.1)
+
+gene_corr_matrix <- gene_corr_res$CorrMatrix
+gene_corr_plot <- gene_corr_res$CorrPlot
+
+gene_corr_plot
+```
+
+## **Saving my outputs**
+**Files**
+```{r}
+## combined counts table in long format
+write_tsv(comb_counts,
+          '../crispr_screen_out/count_output/allSample_counts_long.tsv')
+
+## sgRNA ids
+## have to use write.table() to keep rownames in the .tsv files since write_tsv doesn't include them 
+## combined counts table in wide format
+write.table(sgRNA_combCounts_wide_df,
+            '../crispr_screen_out/count_output/allSample_sgRNAcounts_wide.tsv',
+            sep = "\t",
+            row.names = TRUE)
+
+## normalized combined counts table in wide format
+write.table(sgRNAnorm_combCounts_df,
+            '../crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv',
+            sep = "\t",
+            row.names = TRUE)
+
+## gene ids
+## combined counts table in wide format
+write.table(gene_combCounts_wide_df,
+            '../crispr_screen_out/count_output/allSample_geneCounts_wide.tsv',
+            sep = "\t",
+            row.names = TRUE)
+
+## normalized combined counts table in wide format
+write.table(geneNorm_combCounts_df,
+            '../crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv',
+            sep = "\t",
+            row.names = TRUE)
+```
+
+**Plots**
+john's suggestion for determining plot dimensions when you save them: 
+- width/height=log(n_samples)*7in (r automatically saves plots in 7 x 7 in dimensions)
+```{r}
+ggsave('../crispr_screen_out/plots/sgRNACount_PCA_plot.pdf',
+       plot = sgRNA_pca_plot,
+       width = 8,
+       height = 4)
+ggsave('../crispr_screen_out/plots/geneCount_PCA_plot.pdf',
+       plot = gene_pca_plot,
+       width = 8,
+       height = 4)
+ggsave('../crispr_screen_out/plots/sample_totalCount_plot.pdf',
+       plot = total_counts_plot,
+       width = 9.5,
+       height = 8)
+ggsave('../crispr_screen_out/plots/sample_transCounts_plot.pdf',
+       plot = transform_counts_plot,
+       width = 9.5,
+       height = 8)
+ggsave('../crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf',
+       plot = proc_sgRNA_corr_plot,
+       width = 10,
+       height = 8)
+ggsave('../crispr_screen_out/plots/geneCount_correlationMatrix.pdf',
+       plot = proc_gene_corr_plot,
+       width = 10,
+       height = 8)
+
+## saving all plots as a .png to create the report
+ggsave('../report/plots/sgRNACount_PCA_plot.png',
+       plot = sgRNA_pca_plot,
+       width = 8,
+       height = 4)
+ggsave('../report/plots/geneCount_PCA_plot.png',
+       plot = gene_pca_plot,
+       width = 8,
+       height = 4)
+ggsave('../report/plots/sample_totalCount_plot.png',
+       plot = total_counts_plot,
+       width = 9.5,
+       height = 7)
+ggsave('../report/plots/sample_transCounts_plot.png',
+       plot = transform_counts_plot,
+       width = 9.5,
+       height = 7)
+ggsave('../report/plots/sgRNACount_correlationMatrix.png',
+       plot = sgRNA_corr_plot,
+       width = 10,
+       height = 8)
+ggsave('../report/plots/geneCount_correlationMatrix.png',
+       plot = gene_corr_plot,
+       width = 10,
+       height = 8)
+```
+testing
+```{r}
+ggsave('../report/plots/test_plot.png',
+       plot = sgRNA_corr_plot,
+       width = length(unique(meta$sampleid)) + 1,
+       height = length(unique(meta$sampleid)) + 1)
+```
+
