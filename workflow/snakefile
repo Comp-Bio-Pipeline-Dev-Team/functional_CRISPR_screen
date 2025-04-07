@@ -428,13 +428,13 @@ rule assemble_stat_table:
 
         sampleid={params.samples}
 
-        total_num_reads=$(gzcat {input.raw_file} | awk 'END{{print NR/4}}')
+        total_num_reads=$(zcat < {input.raw_file} | awk 'END{{print NR/4}}')
 
-        reads_with_vector_num=$(gzcat {input.trimmed_file} | awk 'END{{print NR/4}}')
+        reads_with_vector_num=$(zcat < {input.trimmed_file} | awk 'END{{print NR/4}}')
         reads_with_vector_perc=$(echo "($reads_with_vector_num/$total_num_reads)*100" | bc -l | xargs printf "%.2f")
         reads_with_vector=$(echo $reads_with_vector_num $left_paren$reads_with_vector_perc$percent$right_paren)
 
-        reads_with_noVector_num=$(gzcat {input.untrimmed_file} | awk 'END{{print NR/4}}')
+        reads_with_noVector_num=$(zcat < {input.untrimmed_file} | awk 'END{{print NR/4}}')
         reads_with_noVector_perc=$(echo "($reads_with_noVector_num/$total_num_reads)*100" | bc -l | xargs printf "%.2f")
         reads_with_noVector=$(echo $reads_with_noVector_num $left_paren$reads_with_noVector_perc$percent$right_paren)
 

@@ -78,9 +78,9 @@ def assemble_snake_command(snake_path,
                     "-c", str(args.cores)]
     
     if args.use_singularity is not None:
-        snake_command.append("--software-deployment-method apptainer")
+        snake_command.append("--use-singularity")
     else:
-        snake_command.append("--software-deployment-method conda")
+        snake_command.append("--use-conda")
     
     if args.dry_run is not None:
         snake_command.append("--dry-run")
