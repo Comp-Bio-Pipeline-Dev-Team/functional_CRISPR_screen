@@ -2,7 +2,7 @@ name: bbmap
 channels:
   - bioconda
   - conda-forge
-  - anaconda
+  - nodefaults
 dependencies:
   - python=3.13.1
   - bbmap=39.09
