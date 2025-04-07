@@ -55,7 +55,7 @@ functional_CRISPR_screen.py \
     --vector_seq_error 0.2 \ ## deafult
     --crispr_sgRNA_index "path_to_sgRNA_index_fasta" \
     --crispr_sgRNA_index_name "name_of_sgRNA_index" \
-    --use_conda True \ ## only include this line if you want to run the pipeline in conda environments
+    --use_singularity True \ ## only include this line if you want to run the pipeline in singularity/docker containers
     --dry_run True ## only include this line if you want to dry run the pipeline 
 ```
 
@@ -142,7 +142,7 @@ Pipeline inputs and definitions are as follows:
 
 9\. **--crispr_sgRNA_index_name:** The name of the sgRNA index that was used (where you got the associated `.fasta` file from)
 
-10\. **--use_conda:** Optional parameter to run the pipeline in conda environments instead of docker containers
+10\. **--use_singularity:** Optional parameter to run the pipeline in singularity/docker containers instead of conda environments (default). *NOTE: apptainer **must** be installed to run this pipeline with singularity!*
 
 11\. **--dry_run:** Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately
 
@@ -157,7 +157,7 @@ Pipeline inputs and definitions are as follows:
 | --vector_seq_error        | numeric                | default = 0.2                        | This is set to a default of 0.2 but can be changed                                                               |
 | --crispr_sgRNA_index      | string of file path    | required                             | The path to the sgRNA index `.fasta` file                                                                        |
 | --crispr_sgRNA_index_name | string                 | required                             | The name of the sgRNA index that was used (where you got the associated `.fasta` file from)                      |
-| --use_conda               | True (bool)            | optional                             | Optional parameter to run the pipeline in conda environments instead of docker containers                        |
+| --use_singularity               | True (bool)            | optional                             | Optional parameter to run the pipeline in singularity/docker containers instead of conda environments (default)                       |
 | --dry_run                 | True (bool)            | optional                             | Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately |
 
 ### Outputs:

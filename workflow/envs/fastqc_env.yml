@@ -2,7 +2,7 @@ name: fastqc
 channels:
   - bioconda
   - conda-forge
-  - anaconda
+  - nodefaults
 dependencies:
   - python=3.13.1
   - fastqc=0.12.1

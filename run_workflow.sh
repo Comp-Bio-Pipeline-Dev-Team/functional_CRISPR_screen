@@ -20,5 +20,5 @@ functional_CRISPR_screen.py \
     --vector_seq_error 0.2 \
     --crispr_sgRNA_index "reference_data/int/human_crispr_knockout_pooled_library_brunello.fasta" \
     --crispr_sgRNA_index_name "human_crispr_sgRNA_brunello" \
-    --use_conda True \
+    ## --use_singularity True \
     --dry_run True
