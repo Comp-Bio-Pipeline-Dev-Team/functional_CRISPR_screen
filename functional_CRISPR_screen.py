@@ -32,9 +32,10 @@ def get_args():
                         help="The sgRNA index library that samples were prepped with")
     parser.add_argument("--crispr_sgRNA_index_name",
                         help="The name of the sgRNA index library that samples were prepped with") 
-    parser.add_argument("--use_conda",
-                        help="If this parameter is set to True, the workflow will run using conda \
-                              environments instead of singularity",
+    parser.add_argument("--use_singularity",
+                        help="If this parameter is set to True, the workflow will run using singularity containers \
+                              instead of conda environments (default). NOTE: apptainer must be installed to run this \
+                              pipeline with singularity!",
                         default=None)
     parser.add_argument("--dry_run",
                         help="If this parameter is set to True, you can practice running the workflow without \
@@ -76,10 +77,10 @@ def assemble_snake_command(snake_path,
                     "--configfile", config_path,
                     "-c", str(args.cores)]
     
-    if args.use_conda is not None:
-        snake_command.append("--use-conda")
+    if args.use_singularity is not None:
+        snake_command.append("--software-deployment-method apptainer")
     else:
-        snake_command.append("--use-singularity")
+        snake_command.append("--software-deployment-method conda")
     
     if args.dry_run is not None:
         snake_command.append("--dry-run")
