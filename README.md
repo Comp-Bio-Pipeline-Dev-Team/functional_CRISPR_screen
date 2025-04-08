@@ -48,12 +48,12 @@ When the command finishes, a directory titled `functional_CRISPR_screen` should 
 functional_CRISPR_screen.py \
     --cores 10 \ ## default
     --raw_seq_dir 'directory_with_raw_seqs' \
-    --metadata_file 'path_to_metadata_file' \
+    --metadata_file 'path/to/metadata.csv' \
     --bowtie_mismatches 0 \ ## default
-    --vector_seq_used 'TTGTGGAAAGGACGAAACACCG' \
+    --vector_seq_used 'TTGTGGAAAGGACGAAACACCG' \ ## example sequence!
     --vector_seq_minOverlap 10 \ ## default
-    --vector_seq_error 0.2 \ ## deafult
-    --crispr_sgRNA_index "path_to_sgRNA_index_fasta" \
+    --vector_seq_error 0.2 \ ## default
+    --crispr_sgRNA_index "path/to/sgRNA_index.fasta" \
     --crispr_sgRNA_index_name "name_of_sgRNA_index" \
     --use_singularity True \ ## only include this line if you want to run the pipeline in singularity/docker containers
     --dry_run True ## only include this line if you want to dry run the pipeline 
@@ -130,6 +130,9 @@ Pipeline inputs and definitions are as follows:
 
 3\. **--metadata_file:** The path to the metadata file as a `.csv`
 
+> [!IMPORTANT]
+> Metadata file **must** have at least two columns, a Sample ID column named `sampleid` and a biological group column named `biological_group`!
+
 4\. **--bowtie_mismatches:** This is set to 0 as a default but can be changed if the user wishes to
 
 5\. **--vector_seq_used:** The sgRNA vector sequence used in the wet lab experiments
@@ -142,7 +145,10 @@ Pipeline inputs and definitions are as follows:
 
 9\. **--crispr_sgRNA_index_name:** The name of the sgRNA index that was used (where you got the associated `.fasta` file from)
 
-10\. **--use_singularity:** Optional parameter to run the pipeline in singularity/docker containers instead of conda environments (default). *NOTE: apptainer **must** be installed to run this pipeline with singularity!*
+10\. **--use_singularity:** Optional parameter to run the pipeline in singularity/docker containers instead of conda environments (default)
+
+> [!IMPORTANT]
+> Apptainer **must** be installed to run this pipeline with singularity!
 
 11\. **--dry_run:** Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately
 

@@ -12,13 +12,13 @@
 
 functional_CRISPR_screen.py \
     -c 10 \
-    --raw_seq_dir 'raw_crispr_data' \
-    --metadata_file 'metadata.csv' \
+    --raw_seq_dir 'directory_with_raw_seqs' \
+    --metadata_file 'path/to/metadata.csv' \
     --bowtie_mismatches 0 \
     --vector_seq_used 'TTGTGGAAAGGACGAAACACCG' \
     --vector_seq_minOverlap 10 \
     --vector_seq_error 0.2 \
-    --crispr_sgRNA_index "reference_data/int/human_crispr_knockout_pooled_library_brunello.fasta" \
-    --crispr_sgRNA_index_name "human_crispr_sgRNA_brunello" \
-    ## --use_singularity True \
-    --dry_run True
+    --crispr_sgRNA_index "path/to/sgRNA_index.fasta" \
+    --crispr_sgRNA_index_name "name_of_sgRNA_index" 
+    ## --use-singularity True \ ## only include this line if you want to run the pipeline in singularity/docker containers
+    ## --dry_run True  ## only include this line if you want to dry run the pipeline
