@@ -48,12 +48,12 @@ When the command finishes, a directory titled `functional_CRISPR_screen` should 
 functional_CRISPR_screen.py \
     --cores 10 \ ## default
     --raw_seq_dir 'directory_with_raw_seqs' \
-    --metadata_file 'path_to_metadata_file' \
+    --metadata_file 'path/to/metadata.csv' \
     --bowtie_mismatches 0 \ ## default
-    --vector_seq_used 'TTGTGGAAAGGACGAAACACCG' \
+    --vector_seq_used 'TTGTGGAAAGGACGAAACACCG' \ ## example sequence!
     --vector_seq_minOverlap 10 \ ## default
-    --vector_seq_error 0.2 \ ## deafult
-    --crispr_sgRNA_index "path_to_sgRNA_index_fasta" \
+    --vector_seq_error 0.2 \ ## default
+    --crispr_sgRNA_index "path/to/sgRNA_index.fasta" \
     --crispr_sgRNA_index_name "name_of_sgRNA_index" \
     --use_singularity True \ ## only include this line if you want to run the pipeline in singularity/docker containers
     --dry_run True ## only include this line if you want to dry run the pipeline 
