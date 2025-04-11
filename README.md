@@ -7,7 +7,7 @@ Automated pipeline for functional CRISPR screen analyses
 ![](workflow/report/plots/workflow_flowchart.png)
 
 | Workflow Step                            | Why we do this                                                                                                                                                                              |
-|-------------------------|-----------------------------------------------|
+|-------------------------|----------------------------------------------|
 | 1: Quality Check                         | Done to assess the overall quality of the sequences we received prior to additional analysis.                                                                                               |
 | 2: Raw Sequence Prep (trimming)          | To trim all found sequences from the 5' end to 20 base pairs (bp) in length based on the vector sequence of the library that was used. All sgRNA sequences should be about 20 bp in length. |
 | 3: Sequence Alignment                    | To map the trimmed sgRNA sequences to the associated library that they were prepped with to see which sgRNA sequences are present.                                                          |
@@ -47,8 +47,8 @@ When the command finishes, a directory titled `functional_CRISPR_screen` should 
 
 functional_CRISPR_screen.py \
     --cores 10 \ ## default
-    --raw_seq_dir 'directory_with_raw_seqs' \
-    --metadata_file 'path/to/metadata.csv' \
+    --raw_seq_dir 'directory_with_raw_seqs' \ ## assumes that your raw sequence files end in .fastq.gz
+    --metadata_file 'path/to/metadata.csv' \ ## see info on metadata formatting under inputs!
     --bowtie_mismatches 0 \ ## default
     --vector_seq_used 'TTGTGGAAAGGACGAAACACCG' \ ## example sequence!
     --vector_seq_minOverlap 10 \ ## default
@@ -59,7 +59,7 @@ functional_CRISPR_screen.py \
     --dry_run True ## only include this line if you want to dry run the pipeline 
 ```
 
-This script just includes the command line parameters for the pipeline and allows you to easily add file paths to your input sequences, the sgRNA index `.fasta` file, and your metadata file. The input parameters also include the ability to run the pipeline in associated conda environments instead of docker containers and to dry run the pipeline once you put in all parameters to make sure that provided files are located where you said they were.
+This script just includes the command line parameters for the pipeline and allows you to easily add file paths to your input sequences, the sgRNA index `.fasta` file, and your metadata file. The input parameters also include the ability to run the pipeline in associated singularity/docker containers instead of conda environments and to dry run the pipeline once you put in all parameters to make sure that provided files are located where you said they were.
 
 ### Step 3:
 
@@ -130,8 +130,17 @@ Pipeline inputs and definitions are as follows:
 
 3\. **--metadata_file:** The path to the metadata file as a `.csv`
 
-> [!IMPORTANT]
-> Metadata file **must** have at least two columns, a Sample ID column named `sampleid` and a biological group column named `biological_group`!
+> [!IMPORTANT] 
+> Metadata file **must** have at least two columns, a Sample ID column named `sampleid` and a biological group column named `biological_group`! The `sampleid` column should include the filename (everything before `.fastq.gz`) of the raw sequence file for each sample.
+>
+> Example:
+>
+> | sampleid                      | biological_group |
+> |-------------------------------|------------------|
+> | transE-High_S47_L005_R1_001   | high             |
+> | transE-Low_S45_L005_R1_001    | low              |
+> | transE-Medium_S46_L005_R1_001 | high             |
+> | transE-Pre_S48_L005_R1_001    | low              |
 
 4\. **--bowtie_mismatches:** This is set to 0 as a default but can be changed if the user wishes to
 
@@ -147,7 +156,7 @@ Pipeline inputs and definitions are as follows:
 
 10\. **--use_singularity:** Optional parameter to run the pipeline in singularity/docker containers instead of conda environments (default)
 
-> [!IMPORTANT]
+> [!IMPORTANT] 
 > Apptainer **must** be installed to run this pipeline with singularity!
 
 11\. **--dry_run:** Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately
@@ -163,7 +172,7 @@ Pipeline inputs and definitions are as follows:
 | --vector_seq_error        | numeric                | default = 0.2                        | This is set to a default of 0.2 but can be changed                                                               |
 | --crispr_sgRNA_index      | string of file path    | required                             | The path to the sgRNA index `.fasta` file                                                                        |
 | --crispr_sgRNA_index_name | string                 | required                             | The name of the sgRNA index that was used (where you got the associated `.fasta` file from)                      |
-| --use_singularity               | True (bool)            | optional                             | Optional parameter to run the pipeline in singularity/docker containers instead of conda environments (default)                       |
+| --use_singularity         | True (bool)            | optional                             | Optional parameter to run the pipeline in singularity/docker containers instead of conda environments (default)  |
 | --dry_run                 | True (bool)            | optional                             | Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately |
 
 ### Outputs:
