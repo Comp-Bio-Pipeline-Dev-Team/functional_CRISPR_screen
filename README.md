@@ -130,7 +130,8 @@ Pipeline inputs and definitions are as follows:
 
 3\. **--metadata_file:** The path to the metadata file as a `.csv`
 
-> \[!IMPORTANT\] Metadata file **must** have at least two columns, a Sample ID column named `sampleid` and a biological group column named `biological_group`! The `sampleid` column should include the filename (everything before `.fastq.gz`) of the raw sequence file for each sample.
+> [!IMPORTANT] 
+> Metadata file **must** have at least two columns, a Sample ID column named `sampleid` and a biological group column named `biological_group`! The `sampleid` column should include the filename (everything before `.fastq.gz`) of the raw sequence file for each sample.
 >
 > Example:
 >
@@ -155,7 +156,8 @@ Pipeline inputs and definitions are as follows:
 
 10\. **--use_singularity:** Optional parameter to run the pipeline in singularity/docker containers instead of conda environments (default)
 
-> \[!IMPORTANT\] Apptainer **must** be installed to run this pipeline with singularity!
+> [!IMPORTANT] 
+> Apptainer **must** be installed to run this pipeline with singularity!
 
 11\. **--dry_run:** Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately
 
