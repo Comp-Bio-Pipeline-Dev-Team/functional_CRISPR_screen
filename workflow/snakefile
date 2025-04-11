@@ -148,7 +148,7 @@ rule run_multiqc:
 ## around it 
 rule run_cutadapt:
     input:
-        in_samples = os.path.join(RAW_SEQ_IN, "{sample_prefix}_R1_001.fastq.gz")
+        in_samples = os.path.join(RAW_SEQ_IN, "{sample_prefix}.fastq.gz")
     output:
         out_samples = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz",
         out_untrimmed = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz"
@@ -406,7 +406,7 @@ rule run_correlation:
 ## THINGS NEEDED FOR REPORT GENERATION
 rule assemble_stat_table:
     input:
-        raw_file = os.path.join(RAW_SEQ_IN, "{sample_prefix}_R1_001.fastq.gz"),
+        raw_file = os.path.join(RAW_SEQ_IN, "{sample_prefix}.fastq.gz"),
         index_fasta_file = BOWTIE_INDEX_FASTA,
         trimmed_file = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz",
         untrimmed_file = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz",
