@@ -28,7 +28,9 @@ Information on how to pull the automated pipeline off of GitHub to your local co
 
 **2. That you have [git](https://github.com/git-guides/install-git) installed on your local computer**
 
-**3. That you have [snakemake v8.27.1](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) installed in a conda environment (preferrably one that only contains snakemake)**
+**3. That you have [quarto](https://quarto.org/docs/get-started/) installed on your local computer**
+
+**4. That you have [snakemake v8.27.1](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) installed in a conda environment (preferrably one that only contains snakemake)**
 
 ### Step 1:
 
