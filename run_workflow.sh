@@ -1,8 +1,8 @@
-#!/bin/bash 
+#!/bin/bash
 
 ## the python script needs to be verified as an executable! :
 ## chmod +x functional_CRISPR_screen.py
-## chmod +x run_workflow.sh 
+## chmod +x run_workflow.sh
 
 ## also need to add path to folder where script lives to my global path like so:
 ## export PATH=/Users/apgarm/projects/immuno_micro_bioinformatics/functional_CRISPR_screen/:$PATH
@@ -19,6 +19,6 @@ functional_CRISPR_screen.py \
     --vector_seq_minOverlap 10 \
     --vector_seq_error 0.2 \
     --crispr_sgRNA_index "path/to/sgRNA_index.fasta" \
-    --crispr_sgRNA_index_name "name_of_sgRNA_index" 
-    ## --use-singularity True \ ## only include this line if you want to run the pipeline in singularity/docker containers
+    --crispr_sgRNA_index_name "name_of_sgRNA_index"
+    ## --use_singularity True \ ## only include this line if you want to run the pipeline in singularity/docker containers
     ## --dry_run True  ## only include this line if you want to dry run the pipeline
