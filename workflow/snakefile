@@ -164,6 +164,7 @@ rule run_cutadapt:
         """
         cutadapt -g {params.vector_seq} \
                  --length={params.guide_length} \
+		 --minimum-length={params.guide_length} \
                  --untrimmed-output {output.out_untrimmed} \
                  -o {output.out_samples} {input.in_samples}
         
