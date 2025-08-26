@@ -35,7 +35,7 @@ R_ENV = "envs/r_env.yml"
 
 ## singularities (preferred)
 FASTQC_SING = "docker://tbrunetti/functional_crispr_screen:fastqc-v0.12.1"
-MULTIQC_SING = "docker://tbrunetti/functional_crispr_screen:multiqc-v1.16"
+MULTIQC_SING = "docker://tbrunetti/functional_crispr_screen:multiqc-v1.26"
 CUTADAPT_SING = "docker://tbrunetti/functional_crispr_screen:cutadapt-v4.2"
 BOWTIE_SING = "docker://tbrunetti/functional_crispr_screen:bowtie1-v1.3.1"
 BBMAP_SING = "docker://tbrunetti/functional_crispr_screen:bbmap-v39.08"
@@ -138,7 +138,7 @@ rule run_multiqc:
         """
         echo "running multiqc"
         
-        multiqc {input.inDir} -o {params.multiqc_dir} --filename {params.multiqc_filename} .
+        multiqc {input.inDir} --force -o {params.multiqc_dir} --filename {params.multiqc_filename}
         """
 
 ## STEP 1: running cutadapt
@@ -164,7 +164,7 @@ rule run_cutadapt:
         """
         cutadapt -g {params.vector_seq} \
                  --length={params.guide_length} \
-		 --minimum-length={params.guide_length} \
+		         --minimum-length={params.guide_length} \
                  --untrimmed-output {output.out_untrimmed} \
                  -o {output.out_samples} {input.in_samples}
         
