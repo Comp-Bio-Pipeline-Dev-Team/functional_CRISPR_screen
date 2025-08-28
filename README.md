@@ -137,7 +137,7 @@ Execute 5 jobs...
 
 Pipeline inputs and definitions are as follows:
 
-1\. **--cores:** The number of cores you want dedicated to the analysis, set to 10 as a default but should be changed based on the resources of where you're running the pipeline (i.e. local computer or HPC)
+1\. **--cores:** The number of cores you want dedicated to the analysis, set to 1 as a default but should be changed based on the resources of where you're running the pipeline (i.e. local computer or HPC)
 
 2\. **--raw_seq_dir:** The path to the directory containing the raw sequence `.fastq.gz` files
 
@@ -180,7 +180,7 @@ Pipeline inputs and definitions are as follows:
 
 | Parameter                 | Expected Type          | Input Required, Default, or Optional | Description                                                                                                      |
 |------------------|------------------|------------------|------------------|
-| --cores                   | numeric                | default = 1                         | The number of cores you want dedicated to the analysis, default of 10                                            |
+| --cores                   | numeric                | default = 1                         | The number of cores you want dedicated to the analysis, default of 1                                            |
 | --raw_seq_dir             | string of file path    | required                             | The path to the directory containing the raw sequence `.fastq.gz` files                                          |
 | --metadata_file           | string of file path    | required                             | The path to the metadata file as a `.csv`                                                                        |
 | --out_dir_name           | string    | default = "crispr_screen_out"                             | Provides option to change the name of the output directory                                                                        |
