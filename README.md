@@ -2,6 +2,15 @@
 
 Automated pipeline for functional CRISPR screen analyses
 
+## Table of Contents
+
+- [Workflow Overview](#workflow-overview)
+- [Installation](#installation)
+- [Pipeline Specifics](#pipeline-specifics)
+  - [Inputs](#inputs)
+  - [Outputs](#outputs)
+- [Contact Information](#contact-information)
+
 ## Workflow Overview
 
 ![](workflow/report/plots/workflow_flowchart.png)
@@ -48,17 +57,19 @@ When the command finishes, a directory titled `functional_CRISPR_screen` should 
 #!/bin/bash 
 
 functional_CRISPR_screen.py \
-    --cores 10 \ ## default
+    --cores 1 \ ## default
     --raw_seq_dir 'directory_with_raw_seqs' \ ## assumes that your raw sequence files end in .fastq.gz
     --metadata_file 'path/to/metadata.csv' \ ## see info on metadata formatting under inputs!
+    --out_dir_name 'crispr_screen_out' \ ## default - change to your project name if desired
     --bowtie_mismatches 0 \ ## default
     --vector_seq_used 'TTGTGGAAAGGACGAAACACCG' \ ## example sequence!
     --vector_seq_minOverlap 10 \ ## default
     --vector_seq_error 0.2 \ ## default
     --crispr_sgRNA_index "path/to/sgRNA_index.fasta" \
     --crispr_sgRNA_index_name "name_of_sgRNA_index" \
-    --use_singularity True \ ## only include this line if you want to run the pipeline in singularity/docker containers
-    --dry_run True ## only include this line if you want to dry run the pipeline 
+    --latency_wait 60 \ ## default - change if you have a slow (or faster) file system
+    --use_singularity \ ## only include this line if you want to run the pipeline in singularity/docker containers
+    --dry_run ## only include this line if you want to dry run the pipeline 
 ```
 
 This script just includes the command line parameters for the pipeline and allows you to easily add file paths to your input sequences, the sgRNA index `.fasta` file, and your metadata file. The input parameters also include the ability to run the pipeline in associated singularity/docker containers instead of conda environments and to dry run the pipeline once you put in all parameters to make sure that provided files are located where you said they were.
@@ -144,42 +155,48 @@ Pipeline inputs and definitions are as follows:
 > | transE-Medium_S46_L005_R1_001 | high             |
 > | transE-Pre_S48_L005_R1_001    | low              |
 
-4\. **--bowtie_mismatches:** This is set to 0 as a default but can be changed if the user wishes to
+4\. **--out_dir_name:** Provides option to change the name of the output directory, set to `crispr_screen_out` as a default but can be changed
 
-5\. **--vector_seq_used:** The sgRNA vector sequence used in the wet lab experiments
+5\. **--bowtie_mismatches:** This is set to 0 as a default but can be changed if the user wishes to
 
-6\. **--vector_seq_minOverlap:** This is set to a default of 10 but can be changed
+6\. **--vector_seq_used:** The sgRNA vector sequence used in the wet lab experiments
 
-7\. **--vector_seq_error:** This is set to a default of 0.2 but can be changed
+7\. **--vector_seq_minOverlap:** This is set to a default of 10 but can be changed
 
-8\. **--crispr_sgRNA_index:** The path to the sgRNA index `.fasta` file
+8\. **--vector_seq_error:** This is set to a default of 0.2 but can be changed
 
-9\. **--crispr_sgRNA_index_name:** The name of the sgRNA index that was used (where you got the associated `.fasta` file from)
+9\. **--crispr_sgRNA_index:** The path to the sgRNA index `.fasta` file
 
-10\. **--use_singularity:** Optional parameter to run the pipeline in singularity/docker containers instead of conda environments (default)
+10\. **--crispr_sgRNA_index_name:** The name of the sgRNA index that was used (where you got the associated `.fasta` file from)
+
+11\. **--latency_wait:** This is set to 60 (seconds) as a default but can be changed if the user wishes to
+
+12\. **--use_singularity:** Optional parameter to run the pipeline in singularity/docker containers instead of conda environments (default)
 
 > [!IMPORTANT] 
 > Apptainer **must** be installed to run this pipeline with singularity!
 
-11\. **--dry_run:** Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately
+13\. **--dry_run:** Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately
 
 | Parameter                 | Expected Type          | Input Required, Default, or Optional | Description                                                                                                      |
 |------------------|------------------|------------------|------------------|
-| --cores                   | numeric                | default = 10                         | The number of cores you want dedicated to the analysis, default of 10                                            |
+| --cores                   | numeric                | default = 1                         | The number of cores you want dedicated to the analysis, default of 10                                            |
 | --raw_seq_dir             | string of file path    | required                             | The path to the directory containing the raw sequence `.fastq.gz` files                                          |
 | --metadata_file           | string of file path    | required                             | The path to the metadata file as a `.csv`                                                                        |
+| --out_dir_name           | string    | default = "crispr_screen_out"                             | Provides option to change the name of the output directory                                                                        |
 | --bowtie_mismatches       | numeric                | default = 0                          | This is set to a default of 0 but can be changed                                                                 |
 | --vector_seq_used         | string of the sequence | required                             | The sgRNA vector sequence used in the wet lab experiments                                                        |
 | --vector_seq_minOverlap   | numeric                | default = 10                         | This is set to a default of 10 but can be changed                                                                |
 | --vector_seq_error        | numeric                | default = 0.2                        | This is set to a default of 0.2 but can be changed                                                               |
 | --crispr_sgRNA_index      | string of file path    | required                             | The path to the sgRNA index `.fasta` file                                                                        |
 | --crispr_sgRNA_index_name | string                 | required                             | The name of the sgRNA index that was used (where you got the associated `.fasta` file from)                      |
+| --latency_wait         | numeric            | default = 60                            | The amount of time (in seconds) to wait for files to be generated  |
 | --use_singularity         | True (bool)            | optional                             | Optional parameter to run the pipeline in singularity/docker containers instead of conda environments (default)  |
 | --dry_run                 | True (bool)            | optional                             | Optional parameter to dry run the pipeline to ensure that all file paths/parameters are referenced appropriately |
 
 ### Outputs:
 
-Pipeline outputs are contained in a directory named `crispr_screen_out` which should exist in your working directory upon completion of the pipeline. The directory will be structured like so:
+Pipeline outputs are contained in a directory named `crispr_screen_out`/`you_our_dir_name.crispr_screen_out` (depending on user input) which should exist in your working directory upon completion of the pipeline. The directory will be structured like so:
 
 ``` bash
 crispr_screen_out/
@@ -209,14 +226,14 @@ crispr_screen_out/
 │   ├── sample1_untrimmed.fastq.gz
 │   ├── sample2_trimmed.fastq.gz
 │   └── sample2_untrimmed.fastq.gz
-├── dev_report.html
+├── report.html
 ├── fastqc_outputs
 │   ├── sample1_fastqc.html
 │   ├── sample1_fastqc.zip
 │   ├── sample2_fastqc.html
 │   └── sample2_fastqc.zip
 ├── multiqc_outputs
-│   ├── fastqc_crispr_screen_data
+│   ├── multiqc_crispr_screen_data
 │   │   ├── fastqc_adapter_content_plot.txt
 │   │   ├── fastqc_overrepresented_sequences_plot.txt
 │   │   ├── fastqc_per_base_n_content_plot.txt
@@ -235,7 +252,7 @@ crispr_screen_out/
 │   │   ├── multiqc.log
 │   │   ├── multiqc_software_versions.txt
 │   │   └── multiqc_sources.txt
-│   └── fastqc_crispr_screen.html
+│   └── multiqc_crispr_screen.html
 ├── plots
 │   ├── geneCount_correlationMatrix.pdf
 │   ├── geneCount_PCA_plot.pdf
@@ -253,7 +270,7 @@ crispr_screen_out/
     └── transform_count_results.tsv
 ```
 
-To view the functional CRISPR screen analysis overview report, click on `dev_report.html`. All plots and stats are included in the respective `plots` and `qc_files` directories. Any intermediate files made by R are in the `count_output` directory along with the final sgRNA counts table per sample. The raw data at every step of the pipeline is provided for the user under the associated sub-directories with log files for how any given analysis went.
+To view the functional CRISPR screen analysis overview report, click on `report.html`. All plots and stats are included in the respective `plots` and `qc_files` directories. Any intermediate files made by R are in the `count_output` directory along with the final sgRNA counts table per sample. The raw data at every step of the pipeline is provided for the user under the associated sub-directories with log files for how any given analysis went.
 
 ## Contact Information
 

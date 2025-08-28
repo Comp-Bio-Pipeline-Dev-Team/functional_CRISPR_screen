@@ -3,9 +3,6 @@ title: "crispr functional screen analysis summary report"
 date: last-modified
 format:
     html: default
-    ##pdf: default
-editor: 
-    render-on-save: true
 ---
 
 # so you've run a CRISPR functional screen but what does it mean?
@@ -42,7 +39,7 @@ kable(summary_table, align='lcccccccc')
 ```
 
 | Column                           | Explanation                                                                                                                                                              |
-|-------------------------|-----------------------------------------------|
+|--------------------------|----------------------------------------------|
 | Total Reads Sequenced            | Total number of reads sequenced in your sample.                                                                                                                          |
 | Reads with Vector                | Total number of reads containing the vector sequence. This is the number of reads used for alignment.                                                                    |
 | Reads without Vector             | Total number of reads where the vector sequence was not detected and therefore not considered for sgRNA mapping. These reads are not included in the alignment step.     |
@@ -58,12 +55,10 @@ kable(summary_table, align='lcccccccc')
 
 below is a more in-depth description of how we process your raw sequences including the software used, outputs, and why we do each particular step.
 
-note: for the workflow .png to render in a non-blurry format you'll need to save it to the exact px dimensions that you want it to be in for the html (so this file). right now it's; w: 2850 px, h: 2311 px, dpi: 688.27.
-
 ![](plots/workflow_flowchart.png){width="2850"}
 
 | Workflow Step                            | Why we do this                                                                                                                                                                              |
-|------------------------|------------------------------------------------|
+|--------------------------|----------------------------------------------|
 | 1: Quality Check                         | Done to assess the overall quality of the sequences we received prior to additional analysis.                                                                                               |
 | 2: Raw Sequence Prep (trimming)          | To trim all found sequences from the 5' end to 20 base pairs (bp) in length based on the vector sequence of the library that was used. All sgRNA sequences should be about 20 bp in length. |
 | 3: Sequence Alignment                    | To map the trimmed sgRNA sequences to the associated library that they were prepped with to see which sgRNA sequences are present.                                                          |
@@ -92,17 +87,17 @@ total counts is exactly what it sounds like, adding up all the sgRNA/gene counts
 
 ### transformed counts
 
-the total sgRNA/gene counts above undergo a log2() transformation to ensure that the distribution of counts per sample is similar across all samples. like the plot above, the plot is colored by biological group and all replicates should be next to each other on the x-axis. **(why are we doing this??)**
+the total sgRNA/gene counts above undergo a log2() transformation to ensure that the distribution of counts per sample is similar across all samples. like the plot above, the plot is colored by biological group and all replicates should be next to each other on the x-axis.
 
 ![log2(Total Count Plot)](plots/sample_transCounts_plot.png)
 
 ## pca analysis
 
-we next put the counts-per-million (CPM) normalized sgRNA and gene counts through a principal components analysis (PCA) to look at the clustering of all replicates in a biological group. we expect replicates in the same biological group to cluster together (this is not a good example). we do this for sgRNA and gene counts separately since they're different and thus give us slightly different PCA results.
+we next put the counts-per-million (CPM) normalized sgRNA and gene counts through a principal components analysis (PCA) to look at the clustering of all replicates in a biological group, we expect replicates in the same biological group to cluster together. we do this for sgRNA and gene counts separately since they're different and thus give us slightly different PCA results.
 
 ### sgRNA count PCA
 
-we did this using all of the small guide RNA (sgRNA) sequences
+we did this using all of the small guide RNA (sgRNA) sequences.
 
 ![sgRNA Count PCA plot](plots/sgRNACount_PCA_plot.png)
 
@@ -118,21 +113,21 @@ we performed a spearman correlation analysis to make sure that all replicates in
 
 ### sgRNA correlation comparisons
 
-we did this for all small guide RNA (sgRNA) sequences - idk if we need this text
+we did this for all small guide RNA (sgRNA) sequences.
 
 ![sgRNA Count Correlation Plot](plots/sgRNACount_correlationMatrix.png)
 
 ### gene correlation comparisons
 
-this was done using the individual genes - same with this text
+this was done using the individual genes (similar to the gene count PCA above, all sgRNAs under one gene are added up).
 
 ![Gene Count Correlation Plot](plots/geneCount_correlationMatrix.png)
 
 # contact information
 
-If you have any questions regarding your results, our analysis, or ways to further process your data please feel free to contact us! As always, if we have done any analysis for you that ends up in a publication please consider including us in the author list.
+if you have any questions regarding your results, our analysis, or ways to further process your data please feel free to contact us! as always, if we have done any analysis for you that ends up in a publication please consider including us in the author list.
 
 **Madi Apgar, MS: madison.apgar\@cuanschutz.edu**\
 **Tonya Brunetti, PhD: tonya.brunetti\@cuanschutz.edu**
 
-This workflow is publically available as a [GitHub repository](https://github.com/Comp-Bio-Pipeline-Dev-Team/functional_CRISPR_screen).
+this workflow is publicly available as a [GitHub repository](https://github.com/Comp-Bio-Pipeline-Dev-Team/functional_CRISPR_screen).

@@ -11,14 +11,16 @@
 ## echo 'export PATH=/Users/apgarm/projects/immuno_micro_bioinformatics/functional_CRISPR_screen/:$PATH' >> ~/.zshrc
 
 functional_CRISPR_screen.py \
-    -c 10 \
+    -c 1 \
     --raw_seq_dir 'directory_with_raw_seqs' \
     --metadata_file 'path/to/metadata.csv' \
+    --out_dir_name 'my_project_name' \
     --bowtie_mismatches 0 \
     --vector_seq_used 'TTGTGGAAAGGACGAAACACCG' \
     --vector_seq_minOverlap 10 \
     --vector_seq_error 0.2 \
     --crispr_sgRNA_index "path/to/sgRNA_index.fasta" \
-    --crispr_sgRNA_index_name "name_of_sgRNA_index"
-    ## --use_singularity True \ ## only include this line if you want to run the pipeline in singularity/docker containers
-    ## --dry_run True  ## only include this line if you want to dry run the pipeline
+    --crispr_sgRNA_index_name "name_of_sgRNA_index" \
+    --latency_wait 60
+    ## --use_singularity \ ## only include this line if you want to run the pipeline in singularity/docker containers
+    ## --dry_run  ## only include this line if you want to dry run the pipeline

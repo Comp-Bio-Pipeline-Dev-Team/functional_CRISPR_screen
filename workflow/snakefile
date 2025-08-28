@@ -1,10 +1,18 @@
 import pandas as pd
-import os
+from os.path import join as pj
 
 ## ----USER PROVIDED INPUTS----
 ## via the config paramter in run_snakemake.sh
 metadata_csv = pd.read_csv(config["metadata_file"])
 SAMPLE_PREFIX = metadata_csv["sampleid"]
+
+## allows for output directory name to be specified by user
+## otherwise defaults to "crispr_screen_out"
+## need to test this!!
+if config["out_dir"] is not "crispr_screen_out":
+    OUT_DIR_NAME = "{}.{}".format(config["out_dir"], "crispr_screen_out")
+else:
+    OUT_DIR_NAME = config["out_dir"]
 
 RAW_SEQ_IN = config["raw_seq_in"]
 BOWTIE_MISMATCHES = config["bowtie_mismatches"]
@@ -13,8 +21,8 @@ BOWTIE_INDEX_FASTA = config["crispr_sgRNA_index"]
 BOWTIE_INDEX_NAME = config["crispr_sgRNA_index_name"]
 
 ## building the full file path of the bowtie index based on the name given by user
-BOWTIE_INDEX_DIR = os.path.join("reference_data", BOWTIE_INDEX_NAME)
-BOWTIE_INDEX = os.path.join(BOWTIE_INDEX_DIR, BOWTIE_INDEX_NAME)
+BOWTIE_INDEX_DIR = pj("reference_data", BOWTIE_INDEX_NAME)
+BOWTIE_INDEX = pj(BOWTIE_INDEX_DIR, BOWTIE_INDEX_NAME)
 
 
 ## ----CUTADAPT VECTOR VARIABLES----
@@ -47,52 +55,52 @@ UBUNTU_SING = "docker://tbrunetti/functional_crispr_screen:ubuntu-v24.04"
 ## only need to use `expand` in rule all 
 rule all:
     input:
-        "crispr_screen_out/fastqc_outputs/",
-        "crispr_screen_out/multiqc_outputs/fastqc_crispr_screen.html",
-        expand("crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz", 
+        pj(OUT_DIR_NAME,"fastqc_outputs/"),
+        pj(OUT_DIR_NAME, "multiqc_outputs/multiqc_crispr_screen.html"),
+        expand(pj(OUT_DIR_NAME, "cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz"), 
                 sample_prefix = SAMPLE_PREFIX),
-        expand("crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz",
+        expand(pj(OUT_DIR_NAME, "cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz"),
                 sample_prefix = SAMPLE_PREFIX),
         BOWTIE_INDEX_DIR,
-        expand("crispr_screen_out/bowtie_unaligned/{sample_prefix}_mismatches_allowed_unaligned.sam",
+        expand(pj(OUT_DIR_NAME, "bowtie_unaligned/{sample_prefix}_mismatches_allowed_unaligned.sam"),
                sample_prefix=SAMPLE_PREFIX),
-        expand("crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.sam",
+        expand(pj(OUT_DIR_NAME, "bowtie_aligned/{sample_prefix}_mismatches_allowed.sam"),
                sample_prefix=SAMPLE_PREFIX),
-        expand("crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.log",
+        expand(pj(OUT_DIR_NAME, "bowtie_aligned/{sample_prefix}_mismatches_allowed.log"),
                 sample_prefix=SAMPLE_PREFIX),
-        expand("crispr_screen_out/count_output/{sample_prefix}_counts.txt",
+        expand(pj(OUT_DIR_NAME, "count_output/{sample_prefix}_counts.txt"),
                 sample_prefix=SAMPLE_PREFIX),
-        expand("crispr_screen_out/count_output/{sample_prefix}_bbpileup.log",
+        expand(pj(OUT_DIR_NAME, "count_output/{sample_prefix}_bbpileup.log"),
                 sample_prefix=SAMPLE_PREFIX),
-        "crispr_screen_out/count_output/allSample_counts.tsv",
-        "crispr_screen_out/count_output/allSample_counts_long.tsv",
-        "crispr_screen_out/count_output/allSample_sgRNAcounts_wide.tsv",
-        "crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv",
-        "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv",
-        "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv",
-        "crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
+        pj(OUT_DIR_NAME, "count_output/allSample_counts.tsv"),
+        pj(OUT_DIR_NAME, "count_output/allSample_counts_long.tsv"),
+        pj(OUT_DIR_NAME, "count_output/allSample_sgRNAcounts_wide.tsv"),
+        pj(OUT_DIR_NAME, "count_output/norm-cpm_allSample_sgRNAcounts.tsv"),
+        pj(OUT_DIR_NAME, "count_output/allSample_geneCounts_wide.tsv"),
+        pj(OUT_DIR_NAME, "count_output/norm-cpm_allSample_geneCounts.tsv"),
+        pj(OUT_DIR_NAME, "plots/sgRNACount_PCA_plot.pdf"),
         "workflow/report/plots/sgRNACount_PCA_plot.png",
-        "crispr_screen_out/plots/geneCount_PCA_plot.pdf",
+        pj(OUT_DIR_NAME, "plots/geneCount_PCA_plot.pdf"),
         "workflow/report/plots/geneCount_PCA_plot.png",
-        "crispr_screen_out/qc_files/sgRNACount_PCA_results.tsv",
-        "crispr_screen_out/qc_files/geneCount_PCA_results.tsv",
-        "crispr_screen_out/plots/sample_totalCount_plot.pdf",
+        pj(OUT_DIR_NAME, "qc_files/sgRNACount_PCA_results.tsv"),
+        pj(OUT_DIR_NAME, "qc_files/geneCount_PCA_results.tsv"),
+        pj(OUT_DIR_NAME, "plots/sample_totalCount_plot.pdf"),
         "workflow/report/plots/sample_totalCount_plot.png",
-        "crispr_screen_out/plots/sample_transCounts_plot.pdf",
+        pj(OUT_DIR_NAME, "plots/sample_transCounts_plot.pdf"),
         "workflow/report/plots/sample_transCounts_plot.png",
-        "crispr_screen_out/qc_files/total_count_results.tsv",
-        "crispr_screen_out/qc_files/transform_count_results.tsv",
-        "crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf",
+        pj(OUT_DIR_NAME, "qc_files/total_count_results.tsv"),
+        pj(OUT_DIR_NAME, "qc_files/transform_count_results.tsv"),
+        pj(OUT_DIR_NAME, "plots/sgRNACount_correlationMatrix.pdf"),
         "workflow/report/plots/sgRNACount_correlationMatrix.png",
-        "crispr_screen_out/plots/geneCount_correlationMatrix.pdf",
+        pj(OUT_DIR_NAME, "plots/geneCount_correlationMatrix.pdf"),
         "workflow/report/plots/geneCount_correlationMatrix.png",
-        "crispr_screen_out/qc_files/sgRNACount_correlation_results.tsv",
-        "crispr_screen_out/qc_files/geneCount_correlation_results.tsv",
+        pj(OUT_DIR_NAME, "qc_files/sgRNACount_correlation_results.tsv"),
+        pj(OUT_DIR_NAME, "qc_files/geneCount_correlation_results.tsv"),
         expand("workflow/report/summary_stats/{sample_prefix}_overall_stats.tsv",
                 sample_prefix=SAMPLE_PREFIX),
-        "crispr_screen_out/qc_files/sample_summary_stat_table.tsv",
+        pj(OUT_DIR_NAME, "qc_files/sample_summary_stat_table.tsv"),
         "workflow/report/summary_stats/sample_summary_stat_table.tsv",
-        "crispr_screen_out/dev_report.html"
+        pj(OUT_DIR_NAME, "report.html")
         
 
 
@@ -105,7 +113,7 @@ rule run_fastqc:
     input:
         inDir = RAW_SEQ_IN
     output:
-        outDir = directory("crispr_screen_out/fastqc_outputs/")
+        outDir = directory(pj(OUT_DIR_NAME, "fastqc_outputs/"))
     singularity:
         FASTQC_SING
     conda:
@@ -124,16 +132,16 @@ rule run_fastqc:
 
 rule run_multiqc:
     input:
-        inDir = "crispr_screen_out/fastqc_outputs/"
+        inDir = pj(OUT_DIR_NAME, "fastqc_outputs/")
     output:
-        fastq_report_out = "crispr_screen_out/multiqc_outputs/fastqc_crispr_screen.html"
+        fastq_report_out = pj(OUT_DIR_NAME, "multiqc_outputs/multiqc_crispr_screen.html")
     singularity:
         MULTIQC_SING
     conda:
         MULTIQC_ENV
     params:
-        multiqc_dir = "crispr_screen_out/multiqc_outputs/",
-        multiqc_filename = "fastqc_crispr_screen.html"
+        multiqc_dir = pj(OUT_DIR_NAME, "multiqc_outputs/"),
+        multiqc_filename = "multiqc_crispr_screen.html"
     shell:
         """
         echo "running multiqc"
@@ -148,10 +156,10 @@ rule run_multiqc:
 ## around it 
 rule run_cutadapt:
     input:
-        in_samples = os.path.join(RAW_SEQ_IN, "{sample_prefix}.fastq.gz")
+        in_samples = pj(RAW_SEQ_IN, "{sample_prefix}.fastq.gz")
     output:
-        out_samples = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz",
-        out_untrimmed = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz"
+        out_samples = pj(OUT_DIR_NAME, "cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz"),
+        out_untrimmed = pj(OUT_DIR_NAME, "cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz")
     singularity:
         CUTADAPT_SING
     conda:
@@ -159,7 +167,7 @@ rule run_cutadapt:
     params:
         vector_seq = "\"{};min_overlap={};e={}\"".format(VECTOR_BP, VECTOR_MIN_OVERLP, VECTOR_ERROR),
         guide_length = 20,
-        tmp_out = "crispr_screen_out/cutadapt_outputs/tmp_{sample_prefix}.fastq.gz"
+        tmp_out = pj(OUT_DIR_NAME, "cutadapt_outputs/tmp_{sample_prefix}.fastq.gz")
     shell:
         """
         cutadapt -g {params.vector_seq} \
@@ -204,13 +212,13 @@ rule build_bowtie_index:
 
 rule run_bowtie:
     input:
-        in_samples = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz"
+        in_samples = pj(OUT_DIR_NAME, "cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz")
     output:
-        unaligned_out = "crispr_screen_out/bowtie_unaligned/{sample_prefix}_mismatches_allowed_unaligned.sam",
-        aligned_out = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.sam"
+        unaligned_out = pj(OUT_DIR_NAME, "bowtie_unaligned/{sample_prefix}_mismatches_allowed_unaligned.sam"),
+        aligned_out = pj(OUT_DIR_NAME, "bowtie_aligned/{sample_prefix}_mismatches_allowed.sam")
     ## can specify log outputs here
     log:
-        log = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.log"
+        log = pj(OUT_DIR_NAME, "bowtie_aligned/{sample_prefix}_mismatches_allowed.log")
     singularity:
         BOWTIE_SING
     conda:
@@ -240,11 +248,11 @@ rule run_bowtie:
 ## the log file is typically empty with everything in the err file - should we just have a log file?
 rule run_bbmap:
     input:
-        in_samples = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.sam"
+        in_samples = pj(OUT_DIR_NAME, "bowtie_aligned/{sample_prefix}_mismatches_allowed.sam")
     output:
-        count_out = "crispr_screen_out/count_output/{sample_prefix}_counts.txt"
+        count_out = pj(OUT_DIR_NAME, "count_output/{sample_prefix}_counts.txt")
     log:
-        log = "crispr_screen_out/count_output/{sample_prefix}_bbpileup.log"
+        log = pj(OUT_DIR_NAME, "count_output/{sample_prefix}_bbpileup.log")
     singularity:
         BBMAP_SING
     conda:
@@ -261,14 +269,14 @@ rule run_bbmap:
 ## any bash variables in curly brackets in the snakemake shell need to be escaped (double brackets instead of single)
 rule prep_count_files:
     input:
-        decoy_in = expand("crispr_screen_out/count_output/{sample_prefix}_counts.txt",
+        decoy_in = expand(pj(OUT_DIR_NAME, "count_output/{sample_prefix}_counts.txt"),
                            sample_prefix=SAMPLE_PREFIX)
     output:
-        combined_count_file = "crispr_screen_out/count_output/allSample_counts.tsv"
+        combined_count_file = pj(OUT_DIR_NAME, "count_output/allSample_counts.tsv")
     singularity:
         UBUNTU_SING
     params:
-        inDir = "crispr_screen_out/count_output/",
+        inDir = pj(OUT_DIR_NAME, "count_output/"),
         out_file_name = "allSample_counts.tsv"
     shell:
         """
@@ -287,14 +295,14 @@ rule prep_count_files:
 ## THE START OF R ANALYSIS
 rule normalize_counts:
     input:
-        comb_count_table = "crispr_screen_out/count_output/allSample_counts.tsv",
+        comb_count_table = pj(OUT_DIR_NAME, "count_output/allSample_counts.tsv"),
         metadata_file = METADATA
     output:
-        comb_countLong_out = "crispr_screen_out/count_output/allSample_counts_long.tsv",
-        sgRNA_counts_wide = "crispr_screen_out/count_output/allSample_sgRNAcounts_wide.tsv",
-        norm_sgRNA_counts = "crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv",
-        gene_counts_wide = "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv",
-        norm_gene_counts = "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv"
+        comb_countLong_out = pj(OUT_DIR_NAME, "count_output/allSample_counts_long.tsv"),
+        sgRNA_counts_wide = pj(OUT_DIR_NAME, "count_output/allSample_sgRNAcounts_wide.tsv"),
+        norm_sgRNA_counts = pj(OUT_DIR_NAME, "count_output/norm-cpm_allSample_sgRNAcounts.tsv"),
+        gene_counts_wide = pj(OUT_DIR_NAME, "count_output/allSample_geneCounts_wide.tsv"),
+        norm_gene_counts = pj(OUT_DIR_NAME, "count_output/norm-cpm_allSample_geneCounts.tsv")
     singularity:
         R_SING
     conda:
@@ -315,15 +323,15 @@ rule normalize_counts:
 rule run_pca:
     input:
         metadata_file = METADATA,
-        norm_sgRNA_counts = "crispr_screen_out/count_output/norm-cpm_allSample_sgRNAcounts.tsv",
-        norm_gene_counts = "crispr_screen_out/count_output/norm-cpm_allSample_geneCounts.tsv"
+        norm_sgRNA_counts = pj(OUT_DIR_NAME, "count_output/norm-cpm_allSample_sgRNAcounts.tsv"),
+        norm_gene_counts = pj(OUT_DIR_NAME, "count_output/norm-cpm_allSample_geneCounts.tsv")
     output:
-        sgRNA_PCA_pdf = "crispr_screen_out/plots/sgRNACount_PCA_plot.pdf",
+        sgRNA_PCA_pdf = pj(OUT_DIR_NAME, "plots/sgRNACount_PCA_plot.pdf"),
         sgRNA_PCA_png = "workflow/report/plots/sgRNACount_PCA_plot.png",
-        gene_PCA_pdf = "crispr_screen_out/plots/geneCount_PCA_plot.pdf",
+        gene_PCA_pdf = pj(OUT_DIR_NAME, "plots/geneCount_PCA_plot.pdf"),
         gene_PCA_png = "workflow/report/plots/geneCount_PCA_plot.png", 
-        sgRNA_PCA_table = "crispr_screen_out/qc_files/sgRNACount_PCA_results.tsv",
-        gene_PCA_table = "crispr_screen_out/qc_files/geneCount_PCA_results.tsv"
+        sgRNA_PCA_table = pj(OUT_DIR_NAME, "qc_files/sgRNACount_PCA_results.tsv"),
+        gene_PCA_table = pj(OUT_DIR_NAME, "qc_files/geneCount_PCA_results.tsv")
     singularity:
         R_SING
     conda:
@@ -346,15 +354,15 @@ rule run_pca:
 
 rule run_total_transform_counts:
     input:
-        comb_countLong_table = "crispr_screen_out/count_output/allSample_counts_long.tsv",
+        comb_countLong_table = pj(OUT_DIR_NAME, "count_output/allSample_counts_long.tsv"),
         metadata_file = METADATA
     output:
-        total_count_pdf = "crispr_screen_out/plots/sample_totalCount_plot.pdf",
+        total_count_pdf = pj(OUT_DIR_NAME, "plots/sample_totalCount_plot.pdf"),
         total_count_png = "workflow/report/plots/sample_totalCount_plot.png",
-        trans_count_pdf = "crispr_screen_out/plots/sample_transCounts_plot.pdf",
+        trans_count_pdf = pj(OUT_DIR_NAME, "plots/sample_transCounts_plot.pdf"),
         trans_count_png = "workflow/report/plots/sample_transCounts_plot.png",
-        total_count_table = "crispr_screen_out/qc_files/total_count_results.tsv",
-        trans_count_table = "crispr_screen_out/qc_files/transform_count_results.tsv"
+        total_count_table = pj(OUT_DIR_NAME, "qc_files/total_count_results.tsv"),
+        trans_count_table = pj(OUT_DIR_NAME, "qc_files/transform_count_results.tsv")
     singularity:
         R_SING
     conda:
@@ -376,15 +384,15 @@ rule run_total_transform_counts:
 
 rule run_correlation:
     input:
-        sgRNA_counts_wide = "crispr_screen_out/count_output/allSample_sgRNAcounts_wide.tsv",
-        gene_counts_wide = "crispr_screen_out/count_output/allSample_geneCounts_wide.tsv" 
+        sgRNA_counts_wide = pj(OUT_DIR_NAME, "count_output/allSample_sgRNAcounts_wide.tsv"),
+        gene_counts_wide = pj(OUT_DIR_NAME, "count_output/allSample_geneCounts_wide.tsv") 
     output:
-        sgRNA_corr_pdf = "crispr_screen_out/plots/sgRNACount_correlationMatrix.pdf",
+        sgRNA_corr_pdf = pj(OUT_DIR_NAME, "plots/sgRNACount_correlationMatrix.pdf"),
         sgRNA_corr_png = "workflow/report/plots/sgRNACount_correlationMatrix.png",
-        gene_corr_pdf = "crispr_screen_out/plots/geneCount_correlationMatrix.pdf",
+        gene_corr_pdf = pj(OUT_DIR_NAME, "plots/geneCount_correlationMatrix.pdf"),
         gene_corr_png = "workflow/report/plots/geneCount_correlationMatrix.png",
-        sgRNA_corr_table = "crispr_screen_out/qc_files/sgRNACount_correlation_results.tsv",
-        gene_corr_table = "crispr_screen_out/qc_files/geneCount_correlation_results.tsv"
+        sgRNA_corr_table = pj(OUT_DIR_NAME, "qc_files/sgRNACount_correlation_results.tsv"),
+        gene_corr_table = pj(OUT_DIR_NAME, "qc_files/geneCount_correlation_results.tsv")
     singularity:
         R_SING
     conda:
@@ -407,12 +415,12 @@ rule run_correlation:
 ## THINGS NEEDED FOR REPORT GENERATION
 rule assemble_stat_table:
     input:
-        raw_file = os.path.join(RAW_SEQ_IN, "{sample_prefix}.fastq.gz"),
+        raw_file = pj(RAW_SEQ_IN, "{sample_prefix}.fastq.gz"),
         index_fasta_file = BOWTIE_INDEX_FASTA,
-        trimmed_file = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz",
-        untrimmed_file = "crispr_screen_out/cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz",
-        bowtie_log = "crispr_screen_out/bowtie_aligned/{sample_prefix}_mismatches_allowed.log",
-        counts_file = "crispr_screen_out/count_output/{sample_prefix}_counts.txt"
+        trimmed_file = pj(OUT_DIR_NAME, "cutadapt_outputs/{sample_prefix}_trimmed.fastq.gz"),
+        untrimmed_file = pj(OUT_DIR_NAME, "cutadapt_outputs/{sample_prefix}_untrimmed.fastq.gz"),
+        bowtie_log = pj(OUT_DIR_NAME, "bowtie_aligned/{sample_prefix}_mismatches_allowed.log"),
+        counts_file = pj(OUT_DIR_NAME, "count_output/{sample_prefix}_counts.txt")
     output:
         sample_stat_out = "workflow/report/summary_stats/{sample_prefix}_overall_stats.tsv"
     singularity:
@@ -461,7 +469,7 @@ rule combine_stat_table:
         samples_in = expand("workflow/report/summary_stats/{sample_prefix}_overall_stats.tsv",
                             sample_prefix=SAMPLE_PREFIX)
     output:
-        combined_stat_out = "crispr_screen_out/qc_files/sample_summary_stat_table.tsv",
+        combined_stat_out = pj(OUT_DIR_NAME, "qc_files/sample_summary_stat_table.tsv"),
         report_stat_out = "workflow/report/summary_stats/sample_summary_stat_table.tsv"
     singularity:
         UBUNTU_SING
@@ -485,7 +493,7 @@ rule render_report:
         combined_stat_table = "workflow/report/summary_stats/sample_summary_stat_table.tsv",
         report_doc = "workflow/report/dev_report.qmd"
     output:
-        report_copy = "crispr_screen_out/dev_report.html"
+        report_copy = pj(OUT_DIR_NAME, "report.html")
     singularity:
         QUARTO_SING
     conda:
@@ -494,13 +502,12 @@ rule render_report:
         bowtie_mismatches = BOWTIE_MISMATCHES,
         report_vars = "workflow/report/_variables.yml",
         report_html = "workflow/report/dev_report.html",
-        report_location = "crispr_screen_out/"
+        report_location = pj(OUT_DIR_NAME, "report.html") ## may not need this anymore since its exactly the same as output
     shell:
         """
         printf "bowtie_mismatches: {params.bowtie_mismatches}" > {params.report_vars}
 
         quarto render {input.report_doc}
 
-        ## may need to do something to how crispr_screen_out is referenced
-        cp {params.report_html} {params.report_location} 
+        cp {params.report_html} {params.report_copy} 
         """ 
