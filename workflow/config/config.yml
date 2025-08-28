@@ -1,5 +1,6 @@
 raw_seq_in: raw_crispr_data
 metadata_file: metadata.csv
+out_dir: my_project_name
 bowtie_mismatches: '0'
 vector_seq_used: TTGTGGAAAGGACGAAACACCG
 vector_seq_minOverlap: '10'

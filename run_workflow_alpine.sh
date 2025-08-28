@@ -38,11 +38,13 @@ functional_CRISPR_screen.py \
     -c 10 \
     --raw_seq_dir /scratch/alpine/${USER}/data_dir/20250814_LH00407_0160_A235GMTLT3/ \
     --metadata_file /scratch/alpine/${USER}/data_dir/metadata_for_pipeline.csv \
+    --out_dir_name 'crispr_screen_0822202' \
     --bowtie_mismatches 0 \
     --vector_seq_used TTGTGGAAAGGACGAAACACCG \
     --vector_seq_minOverlap 10 \
     --vector_seq_error 0.2 \
     --crispr_sgRNA_index /scratch/alpine/${USER}/data_dir/human_crispr_knockout_pooled_library_brunello.fasta \
     --crispr_sgRNA_index_name brunello \
-    --use_singularity True  ## only include this line if you want to run the pipeline in singularity/docker containers
-    ## --dry_run True  ## only include this line if you want to dry run the pipeline
+    --latency_wait 60 \
+    --use_singularity  ## only include this line if you want to run the pipeline in singularity/docker containers
+    ## --dry_run   ## only include this line if you want to dry run the pipeline
