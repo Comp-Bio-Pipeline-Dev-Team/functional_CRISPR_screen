@@ -97,9 +97,7 @@ Now you should be able to just type the name of the script into your terminal an
 run_workflow.sh
 ```
 
-*Note: If you run the commands above and you're still getting an error, attempt the same steps with the functional_CRISPR_screen.py script instead.*
-
-You don't need to use the `run_snakemake.sh` script if you don't want to and can put the `functional_CRISPR_screen.py` command and parameters directly in the terminal. You'll know that the pipeline is successfully running once the text you see below is printed to your terminal.
+You don't need to use the `run_snakemake.sh` script if you don't want to and can put the `functional_CRISPR_screen` command and parameters directly in the terminal. You'll know that the pipeline is successfully running once the text you see below is printed to your terminal.
 
 ``` bash
 host: im-super1
