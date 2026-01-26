@@ -10,12 +10,12 @@ create_my_envs () {
         done
 }
 
-env_path_list=("workflow/envs/fastqc_env.yml"
-"workflow/envs/multiqc_env.yml" 
-"workflow/envs/cutadapt_env.yml" 
-"workflow/envs/bowtie_env.yml"
-"workflow/envs/bbmap_env.yml"
-"workflow/envs/r_env.yml")
+env_path_list=("envs/fastqc_env.yml"
+"envs/multiqc_env.yml" 
+"envs/cutadapt_env.yml" 
+"envs/bowtie_env.yml"
+"envs/bbmap_env.yml"
+"envs/r_env.yml")
 
 echo "installing all conda environments needed for functional CRISPR screen analysis!"
 create_my_envs ${env_path_list[*]}

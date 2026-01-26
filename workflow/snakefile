@@ -9,7 +9,7 @@ SAMPLE_PREFIX = metadata_csv["sampleid"]
 ## allows for output directory name to be specified by user
 ## otherwise defaults to "crispr_screen_out"
 ## need to test this!!
-if config["out_dir"] is not "crispr_screen_out":
+if config["out_dir"] != "crispr_screen_out":
     OUT_DIR_NAME = "{}.{}".format(config["out_dir"], "crispr_screen_out")
 else:
     OUT_DIR_NAME = config["out_dir"]
@@ -509,5 +509,5 @@ rule render_report:
 
         quarto render {input.report_doc}
 
-        cp {params.report_html} {params.report_copy} 
+        cp {params.report_html} {output.report_copy} 
         """ 

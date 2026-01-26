@@ -56,7 +56,7 @@ When the command finishes, a directory titled `functional_CRISPR_screen` should 
 ``` bash
 #!/bin/bash 
 
-functional_CRISPR_screen.py \
+functional_CRISPR_screen \
     --cores 1 \ ## default
     --raw_seq_dir 'directory_with_raw_seqs' \ ## assumes that your raw sequence files end in .fastq.gz
     --metadata_file 'path/to/metadata.csv' \ ## see info on metadata formatting under inputs!
