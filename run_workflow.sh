@@ -6,7 +6,7 @@
 ## will need to add above line to my .bashrc or .bash_profile to keep executable status:
 ## echo 'export PATH=/Users/apgarm/projects/immuno_micro_bioinformatics/functional_CRISPR_screen/:$PATH' >> ~/.zshrc
 
-functional_CRISPR_screen \
+functional_CRISPR_screen.py \
     -c 1 \
     --raw_seq_dir 'directory_with_raw_seqs' \
     --metadata_file 'path/to/metadata.csv' \

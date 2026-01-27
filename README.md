@@ -56,7 +56,7 @@ When the command finishes, a directory titled `functional_CRISPR_screen` should 
 ``` bash
 #!/bin/bash 
 
-functional_CRISPR_screen \
+functional_CRISPR_screen.py \
     --cores 1 \ ## default
     --raw_seq_dir 'directory_with_raw_seqs' \ ## assumes that your raw sequence files end in .fastq.gz
     --metadata_file 'path/to/metadata.csv' \ ## see info on metadata formatting under inputs!
@@ -97,7 +97,7 @@ Now you should be able to just type the name of the script into your terminal an
 run_workflow.sh
 ```
 
-You don't need to use the `run_snakemake.sh` script if you don't want to and can put the `functional_CRISPR_screen` command and parameters directly in the terminal. You'll know that the pipeline is successfully running once the text you see below is printed to your terminal.
+You don't need to use the `run_snakemake.sh` script if you don't want to and can put the `functional_CRISPR_screen.py` command and parameters directly in the terminal. You'll know that the pipeline is successfully running once the text you see below is printed to your terminal.
 
 ``` bash
 host: im-super1

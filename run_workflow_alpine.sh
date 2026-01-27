@@ -34,7 +34,7 @@ export SINGULARITY_BIND="/scratch/alpine/${USER}/data_dir/:/scratch/alpine/${USE
 # add quarto to your path after you install quarto
 export PATH=/projects/${USER}/software/quarto-1.7.33/bin:$PATH
 
-functional_CRISPR_screen \
+functional_CRISPR_screen.py \
     -c 10 \
     --raw_seq_dir /scratch/alpine/${USER}/data_dir/20250814_LH00407_0160_A235GMTLT3/ \
     --metadata_file /scratch/alpine/${USER}/data_dir/metadata_for_pipeline.csv \

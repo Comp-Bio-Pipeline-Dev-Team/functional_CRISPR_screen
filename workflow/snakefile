@@ -501,8 +501,8 @@ rule render_report:
     params:
         bowtie_mismatches = BOWTIE_MISMATCHES,
         report_vars = "workflow/report/_variables.yml",
-        report_html = "workflow/report/dev_report.html",
-        report_location = pj(OUT_DIR_NAME, "report.html") ## may not need this anymore since its exactly the same as output
+        report_html = "workflow/report/dev_report.html"
+        #report_location = pj(OUT_DIR_NAME, "report.html") ## may not need this anymore since its exactly the same as output
     shell:
         """
         printf "bowtie_mismatches: {params.bowtie_mismatches}" > {params.report_vars}
