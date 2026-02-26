@@ -7,9 +7,13 @@ Automated pipeline for functional CRISPR screen analyses
 - [Workflow Overview](#workflow-overview)
 - [Installation](#installation)
 - [Pipeline Specifics](#pipeline-specifics)
+  - [Requirements for Using Custom sgRNA FASTA File](https://github.com/Comp-Bio-Pipeline-Dev-Team/functional_CRISPR_screen/wiki/Using-your-own-custom-FASTA)
   - [Inputs](#inputs)
   - [Outputs](#outputs)
 - [Contact Information](#contact-information)
+
+> [!IMPORTANT]
+> If you do not plan on using one of the sgRNA FASTA files we have provided, you **must** follow the instructions outlined [here](https://github.com/Comp-Bio-Pipeline-Dev-Team/functional_CRISPR_screen/wiki/Using-your-own-custom-FASTA)!
 
 ## Workflow Overview
 
