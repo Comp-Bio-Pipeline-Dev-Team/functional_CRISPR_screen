@@ -103,13 +103,17 @@ Next, the counts-per-million (CPM) normalized sgRNA and gene counts go through a
 
 PCA was performed using the **CPM, normalized counts** at the _sgRNA level_.  
 
-![sgRNA Count PCA plot](plots/sgRNACount_PCA_plot.png)
+![sgRNA Count PCA by Biological Group](plots/bioGroup_sgRNACount_PCA_plot.png)
+
+![sgRNA Count PCA by Batch](plots/batch_sgRNACount_PCA_plot.png)
 
 ### gene count PCA
 
 This was done using **CPM, normalized counts** at the _gene level_.  Several sgRNAs typically fall under one gene, so these are summed to collapse guides targeting the same gene.  
 
-![Gene Count PCA plot](plots/geneCount_PCA_plot.png)
+![Gene Count PCA by Biological Group](plots/bioGroup_geneCount_PCA_plot.png)
+
+![Gene Count PCA by Batch](plots/batch_geneCount_PCA_plot.png)
 
 ## correlation analysis
 

@@ -1,6 +1,6 @@
 ## runs pca analysis on normalized sgRNA/gene counts 
 
-## needed libraries
+#### needed libraries ####
 library(tidyverse)
 library(broom)
 library(magrittr)
@@ -8,59 +8,57 @@ library(edgeR)
 library(stats)
 library(argparse)
 
-## argparse to link with snakemake
+#### argparse to link with snakemake ####
 parser <- ArgumentParser()
 parser$add_argument("-m",
                     "--metadata",
                     dest = "metadata_fp",
                     help = "Filepath to metadata file in .csv format. 
                     Must have columns named 'sampleid' and 'biological_group'.")
-parser$add_argument("-ns",
-                    "--norm_sgRNA_counts",
+parser$add_argument("--norm_sgRNA_counts",
                     dest = "norm_sgRNA_count_fp",
                     help = "Filepath to the cpm normalized sgRNA counts table file as a .tsv.")
-parser$add_argument("-ng",
-                    "--norm_gene_counts",
+parser$add_argument("--norm_gene_counts",
                     dest = "norm_gene_count_fp",
                     help = "Filepath to the cpm normalized gene counts table file as a .tsv.")
-parser$add_argument("-sgpd",
-                    "--sgRNA_PCA_pdf",
-                    dest = "sgRNA_pdf_fp",
-                    help = "Filepath to the sgRNA count PCA plot as a .pdf.")
-parser$add_argument("-sgpn",
-                    "--sgRNA_PCA_png",
-                    dest = "sgRNA_png_fp",
-                    help = "Filepath to the sgRNA count PCA plot as a .png.")
-parser$add_argument("-gpd",
-                    "--gene_PCA_pdf",
-                    dest = "gene_pdf_fp",
-                    help = "Filepath to the gene count PCA plot as a .pdf.")
-parser$add_argument("-gpn",
-                    "--gene_PCA_png",
-                    dest = "gene_png_fp",
-                    help = "Filepath to the gene count PCA plot as a .png.")
-parser$add_argument("-sgpt",
-                    "--sgRNA_PCA_table",
+parser$add_argument("--bioG_sgRNA_PCA_pdf",
+                    dest = "bioGroup_sgRNA_pdf_fp",
+                    help = "Filepath to the sgRNA count PCA biological group plot as a .pdf.")
+parser$add_argument("--bioG_sgRNA_PCA_png",
+                    dest = "bioGroup_sgRNA_png_fp",
+                    help = "Filepath to the sgRNA count PCA biological group plot as a .png.")
+parser$add_argument("--batch_sgRNA_PCA_pdf",
+                    dest = "batch_sgRNA_pdf_fp",
+                    help = "Filepath to the sgRNA count PCA batch plot as a .pdf.")
+parser$add_argument("--batch_sgRNA_PCA_png",
+                    dest = "batch_sgRNA_png_fp",
+                    help = "Filepath to the sgRNA count PCA batch plot as a .png.")
+parser$add_argument("--bioG_gene_PCA_pdf",
+                    dest = "bioGroup_gene_pdf_fp",
+                    help = "Filepath to the gene count PCA biological group plot as a .pdf.")
+parser$add_argument("--bioG_gene_PCA_png",
+                    dest = "bioGroup_gene_png_fp",
+                    help = "Filepath to the gene count PCA biological group plot as a .png.")
+parser$add_argument("--batch_gene_PCA_pdf",
+                    dest = "batch_gene_pdf_fp",
+                    help = "Filepath to the gene count PCA batch plot as a .pdf.")
+parser$add_argument("--batch_gene_PCA_png",
+                    dest = "batch_gene_png_fp",
+                    help = "Filepath to the gene count PCA batch plot as a .png.")
+parser$add_argument("--sgRNA_PCA_table",
                     dest = "sgRNA_pca_table_fp",
                     help = "Filepath to the sgRNA count PCA table as a .tsv.")
-parser$add_argument("-gpt",
-                    "--gene_PCA_table",
+parser$add_argument("--gene_PCA_table",
                     dest = "gene_pca_table_fp",
                     help = "Filepath to the gene count PCA table as a .tsv.")
 args <- parser$parse_args()
 
-## functions
+#### functions ####
 ## takes normalized counts table and conducts a pca analysis
 ## outputs the pca table and plot
 run_pca <- function(norm_df,
                     metadata_df,
-                    sample_col,
-                    fill_by_col,
-                    point_size,
-                    point_alpha,
-                    brewer_palette,
-                    legend_title,
-                    plot_title){
+                    sample_col){
   ## running principal component analysis 
   count_pca_results <- prcomp(t(norm_df),
                               center = TRUE,
@@ -79,8 +77,28 @@ run_pca <- function(norm_df,
   x_lab <- paste0('PC1', '(', as.character(round(pca_varExp[1], digits = 4) * 100), '%)')
   y_lab <- paste0('PC2', '(', as.character(round(pca_varExp[2], digits = 4) * 100), '%)')
   
+  ## creating list of outputs 
+  my_list <- list(PCATable = count_pca_table,
+                  PCAxLab = x_lab,
+                  PCAyLab = y_lab)
+  return(my_list)
+}
+
+## separate function to generate pca plot 
+## since we want two separate pcas for bio group and batch 
+## by default only plots PC1 and PC2 
+plot_pca <- function(pca_table,
+                     x_lab,
+                     y_lab,
+                     fill_by_col,
+                     point_size,
+                     point_alpha,
+                     brewer_palette,
+                     legend_title,
+                     plot_title){
+  
   ## building actual PCA plot using above data
-  pca_plot <- count_pca_table %>% 
+  plot <- pca_table %>% 
     ggplot(aes(x = PC1, y = PC2)) +
     geom_point(aes(fill = .data[[fill_by_col]]), 
                pch = 21, 
@@ -93,10 +111,9 @@ run_pca <- function(norm_df,
     labs(x = x_lab,
          y = y_lab,
          title = plot_title)
-  ## creating list of outputs 
-  my_list <- list(PCATable = count_pca_table,
-                  PCAPlot = pca_plot)
-  return(my_list)
+  
+  return(plot)
+  
 }
 
 ## actual analysis
@@ -108,52 +125,103 @@ geneNorm_combCounts_df <- read.table(args$norm_gene_count_fp,
                                      check.names = FALSE)
 metadata <- read_csv(args$metadata_fp)
 
-## sgRNA PCA analysis
+#### sgRNA PCA analysis ####
 sgRNA_pca_res <- run_pca(norm_df = sgRNAnorm_combCounts_df,
                          metadata_df = metadata,
-                         sample_col = 'sampleid',
-                         fill_by_col = 'biological_group',
-                         point_size = 3,
-                         point_alpha = 0.6,
-                         brewer_palette = 'Dark2',
-                         legend_title = 'Biological Group',
-                         plot_title = 'sgRNA Count PCA')
+                         sample_col = 'sampleid')
 
 sgRNA_count_pcaTable <- sgRNA_pca_res$PCATable
-sgRNA_pca_plot <- sgRNA_pca_res$PCAPlot
 
-## gene PCA analysis
+## PCA colored by biological_group
+bioGroup_sgRNA_pca_plot <- plot_pca(pca_table = sgRNA_count_pcaTable,
+                           x_lab = sgRNA_pca_res$PCAxLab,
+                           y_lab = sgRNA_pca_res$PCAyLab,
+                           fill_by_col = 'biological_group',
+                           point_size = 3,
+                           point_alpha = 0.6,
+                           brewer_palette = 'Dark2',
+                           legend_title = 'Biological Group',
+                           plot_title = 'sgRNA Count PCA: Biological Group')
+
+## PCA colored by batch
+batch_sgRNA_pca_plot <- plot_pca(pca_table = sgRNA_count_pcaTable,
+                                 x_lab = sgRNA_pca_res$PCAxLab,
+                                 y_lab = sgRNA_pca_res$PCAyLab,
+                                 fill_by_col = 'batch',
+                                 point_size = 3,
+                                 point_alpha = 0.6,
+                                 brewer_palette = 'Dark2',
+                                 legend_title = 'Batch',
+                                 plot_title = 'sgRNA Count PCA: Batch')
+
+
+#### gene PCA analysis ####
 gene_pca_res <- run_pca(norm_df = geneNorm_combCounts_df,
                         metadata_df = metadata,
-                        sample_col = 'sampleid',
-                        fill_by_col = 'biological_group',
-                        point_size = 3,
-                        point_alpha = 0.6,
-                        brewer_palette = 'Dark2',
-                        legend_title = 'Biological Group',
-                        plot_title = 'Gene Count PCA')
+                        sample_col = 'sampleid')
 
 gene_count_pcaTable <- gene_pca_res$PCATable
-gene_pca_plot <- gene_pca_res$PCAPlot
 
-## saving my outputs
+## PCA colored by biological_group
+bioGroup_gene_pca_plot <- plot_pca(pca_table = gene_count_pcaTable,
+                                    x_lab = gene_pca_res$PCAxLab,
+                                    y_lab = gene_pca_res$PCAyLab,
+                                    fill_by_col = 'biological_group',
+                                    point_size = 3,
+                                    point_alpha = 0.6,
+                                    brewer_palette = 'Dark2',
+                                    legend_title = 'Biological Group',
+                                    plot_title = 'Gene Count PCA: Biological Group')
+
+## PCA colored by batch
+batch_gene_pca_plot <- plot_pca(pca_table = gene_count_pcaTable,
+                                 x_lab = gene_pca_res$PCAxLab,
+                                 y_lab = gene_pca_res$PCAyLab,
+                                 fill_by_col = 'batch',
+                                 point_size = 3,
+                                 point_alpha = 0.6,
+                                 brewer_palette = 'Dark2',
+                                 legend_title = 'Batch',
+                                 plot_title = 'Gene Count PCA: Batch')
+
+#### saving my outputs ####
 ## plots - pdf
-ggsave(args$sgRNA_pdf_fp,
-       plot = sgRNA_pca_plot,
+ggsave(args$bioGroup_sgRNA_pdf_fp,
+       plot = bioGroup_sgRNA_pca_plot,
        width = 8,
        height = 6)
-ggsave(args$gene_pdf_fp,
-       plot = gene_pca_plot,
+ggsave(args$batch_sgRNA_pdf_fp,
+       plot = batch_sgRNA_pca_plot,
+       width = 8,
+       height = 6)
+
+
+ggsave(args$bioGroup_gene_pdf_fp,
+       plot = bioGroup_gene_pca_plot,
+       width = 8,
+       height = 6)
+ggsave(args$batch_gene_pdf_fp,
+       plot = batch_gene_pca_plot,
        width = 8,
        height = 6)
 
 ## plots - png (for report generation)
-ggsave(args$sgRNA_png_fp,
-       plot = sgRNA_pca_plot,
+ggsave(args$bioGroup_sgRNA_png_fp,
+       plot = bioGroup_sgRNA_pca_plot,
        width = 8,
        height = 6)
-ggsave(args$gene_png_fp,
-       plot = gene_pca_plot,
+ggsave(args$batch_sgRNA_png_fp,
+       plot = batch_sgRNA_pca_plot,
+       width = 8,
+       height = 6)
+
+
+ggsave(args$bioGroup_gene_png_fp,
+       plot = bioGroup_gene_pca_plot,
+       width = 8,
+       height = 6)
+ggsave(args$batch_gene_png_fp,
+       plot = batch_gene_pca_plot,
        width = 8,
        height = 6)
 

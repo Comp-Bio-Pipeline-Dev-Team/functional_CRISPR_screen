@@ -78,10 +78,14 @@ rule all:
         pj(OUT_DIR_NAME, "count_output/norm-cpm_allSample_sgRNAcounts.tsv"),
         pj(OUT_DIR_NAME, "count_output/allSample_geneCounts_wide.tsv"),
         pj(OUT_DIR_NAME, "count_output/norm-cpm_allSample_geneCounts.tsv"),
-        pj(OUT_DIR_NAME, "plots/sgRNACount_PCA_plot.pdf"),
-        "workflow/report/plots/sgRNACount_PCA_plot.png",
-        pj(OUT_DIR_NAME, "plots/geneCount_PCA_plot.pdf"),
-        "workflow/report/plots/geneCount_PCA_plot.png",
+        pj(OUT_DIR_NAME, "plots/bioGroup_sgRNACount_PCA_plot.pdf"),
+        "workflow/report/plots/bioGroup_sgRNACount_PCA_plot.png",
+        pj(OUT_DIR_NAME, "plots/batch_sgRNACount_PCA_plot.pdf"),
+        "workflow/report/plots/batch_sgRNACount_PCA_plot.png",
+        pj(OUT_DIR_NAME, "plots/bioGroup_geneCount_PCA_plot.pdf"),
+        "workflow/report/plots/bioGroup_geneCount_PCA_plot.png",
+        pj(OUT_DIR_NAME, "plots/batch_geneCount_PCA_plot.pdf"),
+        "workflow/report/plots/batch_geneCount_PCA_plot.png",
         pj(OUT_DIR_NAME, "qc_files/sgRNACount_PCA_results.tsv"),
         pj(OUT_DIR_NAME, "qc_files/geneCount_PCA_results.tsv"),
         pj(OUT_DIR_NAME, "plots/sample_totalCount_plot.pdf"),
@@ -327,10 +331,14 @@ rule run_pca:
         norm_sgRNA_counts = pj(OUT_DIR_NAME, "count_output/norm-cpm_allSample_sgRNAcounts.tsv"),
         norm_gene_counts = pj(OUT_DIR_NAME, "count_output/norm-cpm_allSample_geneCounts.tsv")
     output:
-        sgRNA_PCA_pdf = pj(OUT_DIR_NAME, "plots/sgRNACount_PCA_plot.pdf"),
-        sgRNA_PCA_png = "workflow/report/plots/sgRNACount_PCA_plot.png",
-        gene_PCA_pdf = pj(OUT_DIR_NAME, "plots/geneCount_PCA_plot.pdf"),
-        gene_PCA_png = "workflow/report/plots/geneCount_PCA_plot.png", 
+        bioG_sgRNA_PCA_pdf = pj(OUT_DIR_NAME, "plots/bioGroup_sgRNACount_PCA_plot.pdf"),
+        bioG_sgRNA_PCA_png = "workflow/report/plots/bioGroup_sgRNACount_PCA_plot.png",
+        batch_sgRNA_PCA_pdf = pj(OUT_DIR_NAME, "plots/batch_sgRNACount_PCA_plot.pdf"),
+        batch_sgRNA_PCA_png = "workflow/report/plots/batch_sgRNACount_PCA_plot.png",
+        bioG_gene_PCA_pdf = pj(OUT_DIR_NAME, "plots/bioGroup_geneCount_PCA_plot.pdf"),
+        bioG_gene_PCA_png = "workflow/report/plots/bioGroup_geneCount_PCA_plot.png",
+        batch_gene_PCA_pdf = pj(OUT_DIR_NAME, "plots/batch_geneCount_PCA_plot.pdf"),
+        batch_gene_PCA_png = "workflow/report/plots/batch_geneCount_PCA_plot.png",
         sgRNA_PCA_table = pj(OUT_DIR_NAME, "qc_files/sgRNACount_PCA_results.tsv"),
         gene_PCA_table = pj(OUT_DIR_NAME, "qc_files/geneCount_PCA_results.tsv")
     singularity:
@@ -344,10 +352,14 @@ rule run_pca:
         Rscript {params.r_src_location} --metadata {input.metadata_file} \
                               --norm_sgRNA_counts {input.norm_sgRNA_counts} \
                               --norm_gene_counts {input.norm_gene_counts} \
-                              --sgRNA_PCA_pdf {output.sgRNA_PCA_pdf} \
-                              --sgRNA_PCA_png {output.sgRNA_PCA_png} \
-                              --gene_PCA_pdf {output.gene_PCA_pdf} \
-                              --gene_PCA_png {output.gene_PCA_png} \
+                              --bioG_sgRNA_PCA_pdf {output.bioG_sgRNA_PCA_pdf} \
+                              --bioG_sgRNA_PCA_png {output.bioG_sgRNA_PCA_png} \
+                              --batch_sgRNA_PCA_pdf {output.batch_sgRNA_PCA_pdf} \
+                              --batch_sgRNA_PCA_png {output.batch_sgRNA_PCA_png} \
+                              --bioG_gene_PCA_pdf {output.bioG_gene_PCA_pdf} \
+                              --bioG_gene_PCA_png {output.bioG_gene_PCA_png} \
+                              --batch_gene_PCA_pdf {output.batch_gene_PCA_pdf} \
+                              --batch_gene_PCA_png {output.batch_gene_PCA_png} \
                               --sgRNA_PCA_table {output.sgRNA_PCA_table} \
                               --gene_PCA_table {output.gene_PCA_table}
         """
@@ -485,8 +497,10 @@ rule combine_stat_table:
 ## need to test this..i'm not sure how its going to go 
 rule render_report:
     input:
-        sgRNA_PCA_png = "workflow/report/plots/sgRNACount_PCA_plot.png",
-        gene_PCA_png = "workflow/report/plots/geneCount_PCA_plot.png",
+        bioG_sgRNA_PCA_png = "workflow/report/plots/bioGroup_sgRNACount_PCA_plot.png",
+        batch_sgRNA_PCA_png = "workflow/report/plots/batch_sgRNACount_PCA_plot.png",
+        bioG_gene_PCA_png = "workflow/report/plots/bioGroup_geneCount_PCA_plot.png",
+        batch_gene_PCA_png = "workflow/report/plots/batch_geneCount_PCA_plot.png",
         total_count_png = "workflow/report/plots/sample_totalCount_plot.png",
         trans_count_png = "workflow/report/plots/sample_transCounts_plot.png",
         sgRNA_corr_png = "workflow/report/plots/sgRNACount_correlationMatrix.png",
@@ -503,7 +517,6 @@ rule render_report:
         bowtie_mismatches = BOWTIE_MISMATCHES,
         report_vars = "workflow/report/_variables.yml",
         report_html = "workflow/report/dev_report.html"
-        #report_location = pj(OUT_DIR_NAME, "report.html") ## may not need this anymore since its exactly the same as output
     shell:
         """
         printf "bowtie_mismatches: {params.bowtie_mismatches}" > {params.report_vars}

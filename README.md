@@ -1,3 +1,6 @@
+> [!CAUTION]
+> As of April 2, 2026, users are **REQUIRED** to include a column in the metadata file with sample batch information called `batch`! For further information, see the [inputs](#inputs) section. 
+
 # functional_CRISPR_screen
 
 Automated pipeline for functional CRISPR screen analyses
@@ -144,16 +147,16 @@ Pipeline inputs and definitions are as follows:
 3\. **--metadata_file:** The path to the metadata file as a `.csv`
 
 > [!IMPORTANT] 
-> Metadata file **must** have at least two columns, a Sample ID column named `sampleid` and a biological group column named `biological_group`! The `sampleid` column should include the filename (everything before `.fastq.gz`) of the raw sequence file for each sample.
+> Metadata file **must** have at least **three columns**, a Sample ID column named `sampleid`, a biological group column named `biological_group`, and a sample batch column named `batch`! The `sampleid` column should include the filename (everything before `.fastq.gz`) of the raw sequence file for each sample.
 >
 > Example:
 >
-> | sampleid                      | biological_group |
-> |-------------------------------|------------------|
-> | transE-High_S47_L005_R1_001   | high             |
-> | transE-Low_S45_L005_R1_001    | low              |
-> | transE-Medium_S46_L005_R1_001 | high             |
-> | transE-Pre_S48_L005_R1_001    | low              |
+> | sampleid                      | biological_group | batch |
+> |-------------------------------|------------------|-------|
+> | transE-High_S47_L005_R1_001   | high             | 1     |
+> | transE-Low_S45_L005_R1_001    | low              | 2     |
+> | transE-Medium_S46_L005_R1_001 | high             | 1     | 
+> | transE-Pre_S48_L005_R1_001    | low              | 2     |
 
 4\. **--out_dir_name:** Provides option to change the name of the output directory, set to `crispr_screen_out` as a default but can be changed
 
@@ -255,11 +258,13 @@ crispr_screen_out/
 │   └── multiqc_crispr_screen.html
 ├── plots
 │   ├── geneCount_correlationMatrix.pdf
-│   ├── geneCount_PCA_plot.pdf
+│   ├── bioGroup_geneCount_PCA_plot.pdf
+│   ├── batch_geneCount_PCA_plot.pdf   
 │   ├── sample_totalCount_plot.pdf
 │   ├── sample_transCounts_plot.pdf
 │   ├── sgRNACount_correlationMatrix.pdf
-│   └── sgRNACount_PCA_plot.pdf
+│   ├── batch_sgRNACount_PCA_plot.pdf
+│   └── bioGroup_sgRNACount_PCA_plot.pdf
 └── qc_files
     ├── geneCount_correlation_results.tsv
     ├── geneCount_PCA_results.tsv
