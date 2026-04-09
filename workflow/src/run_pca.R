@@ -98,7 +98,8 @@ plot_pca <- function(pca_table,
                      plot_title){
   
   ## building actual PCA plot using above data
-  plot <- pca_table %>% 
+  plot <- pca_table %>%
+    mutate(across(all_of(fill_by_col), as.factor)) %>%
     ggplot(aes(x = PC1, y = PC2)) +
     geom_point(aes(fill = .data[[fill_by_col]]), 
                pch = 21, 
