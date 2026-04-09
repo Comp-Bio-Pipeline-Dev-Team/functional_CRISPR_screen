@@ -70,6 +70,7 @@ run_total_counts <- function(comb_table,
   
   ## building total counts plot
   total_counts_plot <- total_counts_table %>% 
+    mutate(across(all_of(fill_by_col), as.factor)) %>%
     ggplot(aes(x = .data[[sample_col]], y = total_counts)) +
     geom_bar(aes(fill = .data[[fill_by_col]]), 
              stat = 'identity', 
@@ -111,6 +112,7 @@ run_transform_counts <- function(comb_table,
   
   ## plot 
   transform_count_plot <- transform_count_table %>% 
+    mutate(across(all_of(fill_by_col), as.factor)) %>%
     ggplot(aes(x = .data[[sample_col]], y = log2_counts)) +
     geom_boxplot(aes(group = .data[[sample_col]]), width = 0.5, color = 'black') +
     geom_violin(aes(fill = .data[[fill_by_col]]), color = 'black', alpha = bar_alpha) +

@@ -7,15 +7,15 @@ format:
 
 # so you've run a CRISPR functional screen but what does it mean?
 
-Pooled functional CRISPR screens are typically used for detecting changes in gene expression across the genome when a library of genes are knocked out, ideally one at a time based on the sgRNA transuction efficiency and dilution.  These experiments tpically aim to determine which cells and guides survive after being subjected to set of selective pressures.  Some examples include the selective pressure based on cell survival of durg treatments and resistance, exposure to host-pathogen interactions, determination of the effects of sythentic lethal experiments, etc...  This pipeline automates the data processing steps from raw fastq files and generates both raw and normalized counts matrices summarized by both gene and sgRNA for all samples input into the pipeline.  This report strives to break down our analysis and show you preliminary results on the success of your experiment so you can move forward with your investigation.  
+Pooled functional CRISPR screens are typically used for detecting changes in gene expression across the genome when a library of genes are knocked out, ideally one at a time based on the sgRNA transuction efficiency and dilution. These experiments tpically aim to determine which cells and guides survive after being subjected to set of selective pressures. Some examples include the selective pressure based on cell survival of durg treatments and resistance, exposure to host-pathogen interactions, determination of the effects of sythentic lethal experiments, etc... This pipeline automates the data processing steps from raw fastq files and generates both raw and normalized counts matrices summarized by both gene and sgRNA for all samples input into the pipeline. This report strives to break down our analysis and show you preliminary results on the success of your experiment so you can move forward with your investigation.
 
-<br/>  
+<br/>
 
-Often times, the goal of these experiments is to perform an analysis similar to bulk RNA-seq differential expression analysis, where different conditions are compared to determine which guides or genes are enriched one condition over another.  If the report and QC steps here look of high quality, we recommend you proceed with using DESeq2 to analyze the **raw NOT normalized** data matrices for DE testing.  We offer an R package with a template analysis script to help with these analysis, please reach out to us via email or github if you have any questions interpreting this repport of if you would like us to help with further downstream analysis or DE testing.    
+Often times, the goal of these experiments is to perform an analysis similar to bulk RNA-seq differential expression analysis, where different conditions are compared to determine which guides or genes are enriched one condition over another. If the report and QC steps here look of high quality, we recommend you proceed with using DESeq2 to analyze the **raw NOT normalized** data matrices for DE testing. We offer an R package with a template analysis script to help with these analysis, please reach out to us via email or github if you have any questions interpreting this repport of if you would like us to help with further downstream analysis or DE testing.
 
 # Analysis Summary Table
 
-We have provided a summary table outlining how the raw sequences performed in during the pre-processing steps of the analysis. A successful functional CRISPR screen should show a very high proportion of the vector detected in your reads and of those reads with a vector sequences, most should align to a sgRNA sequence.  
+We have provided a summary table outlining how the raw sequences performed in during the pre-processing steps of the analysis. A successful functional CRISPR screen should show a very high proportion of the vector detected in your reads and of those reads with a vector sequences, most should align to a sgRNA sequence.
 
 ```{r}
 #| label: tbl-summaryStats
@@ -55,9 +55,9 @@ kable(summary_table, align='lcccccccc')
 
 : summary table explained {tbl-colwidths="\[25,75\]".striped}
 
-# What does the pipeline do?  
+# What does the pipeline do?
 
-Below is an in-depth description of how we process your raw sequences including the software used, outputs, and why we perform each particular step. 
+Below is an in-depth description of how we process your raw sequences including the software used, outputs, and why we perform each particular step.
 
 ![](plots/workflow_flowchart.png){width="2850"}
 
@@ -95,39 +95,43 @@ The total sgRNA/gene counts above undergo a log2() transformation to ensure that
 
 ![log2(Total Count Plot)](plots/sample_transCounts_plot.png)
 
-## PCA  
+## PCA
 
-Next, the counts-per-million (CPM) normalized sgRNA and gene counts go through a principal components analysis (PCA) to look at the clustering of all replicates in a biological group, We expect replicates in the same biological group to cluster together. we do this for sgRNA and gene counts separately since they're different and thus give us slightly different PCA results.  Note, given that functional CRISPR screen can be quite complicated to set up, very often, we see that biological replicates do not cluster together and instead cluster by their batch (i.e. batch effect).  In this case, as long as the study design was appropriately set up with each batch representing all possible phenotypes and covariates, we can regress out the batch effect at time of running differential expression analysis.  **DO NOT PROCEED WITH DOWNSTREAM ANALYSIS UNTIL AN ANALYTIC PLAN AND CORRECTION IS IN PLACE IF THE PCA DOES NOT GROUP BY BIOLOGICAL REPLICATE GROUPS!!**  
+Next, the counts-per-million (CPM) normalized sgRNA and gene counts go through a principal components analysis (PCA) to look at the clustering of all replicates in a biological group, We expect replicates in the same biological group to cluster together. we do this for sgRNA and gene counts separately since they're different and thus give us slightly different PCA results. Note, given that functional CRISPR screen can be quite complicated to set up, very often, we see that biological replicates do not cluster together and instead cluster by their batch (i.e. batch effect). In this case, as long as the study design was appropriately set up with each batch representing all possible phenotypes and covariates, we can regress out the batch effect at time of running differential expression analysis. **DO NOT PROCEED WITH DOWNSTREAM ANALYSIS UNTIL AN ANALYTIC PLAN AND CORRECTION IS IN PLACE IF THE PCA DOES NOT GROUP BY BIOLOGICAL REPLICATE GROUPS!!**
 
 ### sgRNA count PCA
 
-PCA was performed using the **CPM, normalized counts** at the _sgRNA level_.  
+PCA was performed using the **CPM, normalized counts** at the *sgRNA level*.
 
 ![sgRNA Count PCA by Biological Group](plots/bioGroup_sgRNACount_PCA_plot.png)
+
+<br/>
 
 ![sgRNA Count PCA by Batch](plots/batch_sgRNACount_PCA_plot.png)
 
 ### gene count PCA
 
-This was done using **CPM, normalized counts** at the _gene level_.  Several sgRNAs typically fall under one gene, so these are summed to collapse guides targeting the same gene.  
+This was done using **CPM, normalized counts** at the *gene level*. Several sgRNAs typically fall under one gene, so these are summed to collapse guides targeting the same gene.
 
 ![Gene Count PCA by Biological Group](plots/bioGroup_geneCount_PCA_plot.png)
+
+<br/>
 
 ![Gene Count PCA by Batch](plots/batch_geneCount_PCA_plot.png)
 
 ## correlation analysis
 
-A Spearman correlation was performed to make sure that all replicates in a biological group correlate more closely with each other than other biological groups.  A correlation value closer to 1 between replicates of the same biological group is expected. Positive correlations will be deeper blue and negative correlations will be deeper red. Correlations on sgRNA and gene counts were analyzed separately.  
+A Spearman correlation was performed to make sure that all replicates in a biological group correlate more closely with each other than other biological groups. A correlation value closer to 1 between replicates of the same biological group is expected. Positive correlations will be deeper blue and negative correlations will be deeper red. Correlations on sgRNA and gene counts were analyzed separately.
 
 ### sgRNA correlation comparisons
 
-Spearman correlatoins using **CPM, normalized counts** at the sgRNA (sgRNA) level.  
+Spearman correlatoins using **CPM, normalized counts** at the sgRNA (sgRNA) level.
 
 ![sgRNA Count Correlation Plot](plots/sgRNACount_correlationMatrix.png)
 
 ### gene correlation comparisons
 
-This was done using **CPM, normalized counts** at the _gene level_.  Several sgRNAs typically fall under one gene, so these are summed to collapse guides targeting the same gene.  
+This was done using **CPM, normalized counts** at the *gene level*. Several sgRNAs typically fall under one gene, so these are summed to collapse guides targeting the same gene.
 
 ![Gene Count Correlation Plot](plots/geneCount_correlationMatrix.png)
 
