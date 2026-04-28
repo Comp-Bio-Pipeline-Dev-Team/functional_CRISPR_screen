@@ -397,8 +397,8 @@ rule run_total_transform_counts:
 
 rule run_correlation:
     input:
-        sgRNA_counts_wide = pj(OUT_DIR_NAME, "count_output/allSample_sgRNAcounts_wide.tsv"),
-        gene_counts_wide = pj(OUT_DIR_NAME, "count_output/allSample_geneCounts_wide.tsv") 
+        sgRNA_counts_wide = pj(OUT_DIR_NAME, "count_output/norm-cpm_allSample_sgRNAcounts.tsv"),
+        gene_counts_wide = pj(OUT_DIR_NAME, "count_output/norm-cpm_allSample_geneCounts.tsv") 
     output:
         sgRNA_corr_pdf = pj(OUT_DIR_NAME, "plots/sgRNACount_correlationMatrix.pdf"),
         sgRNA_corr_png = "workflow/report/plots/sgRNACount_correlationMatrix.png",
@@ -494,7 +494,6 @@ rule combine_stat_table:
         """
 
 
-## need to test this..i'm not sure how its going to go 
 rule render_report:
     input:
         bioG_sgRNA_PCA_png = "workflow/report/plots/bioGroup_sgRNACount_PCA_plot.png",
