@@ -42,21 +42,22 @@ Information on how to pull the automated pipeline off of GitHub to your local co
 
 **1. That you already have conda or a conda-like entity (micromamba, mambaforge, miniconda, etc.) installed on your local computer (if you don't have this installed, [do so now](https://github.com/conda-forge/miniforge))**
 
-**2. That you have [git](https://github.com/git-guides/install-git) installed on your local computer**
-
-**3. That you have [snakemake v8.27.1](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) installed in a conda environment (preferrably one that only contains snakemake)**
+**2. That you have [snakemake v8.27.1](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) installed in a conda environment (preferrably one that only contains snakemake)**
 
 ### Step 1:
 
-On your local computer, navigate to where you'd like the directory for the automated pipeline to live. If you don't do this, GitHub will clone the repository to wherever you currently are in your file system when you call `git clone` (which you don't want, or maybe you do, I don't know your life). Then type this command in your terminal:
+On your local computer, navigate to where you'd like the directory for the automated pipeline to live. If you don't do this, the directory will be placed wherever you unzip the `.tar.gz` file! The commands below should be executed from your terminal and do the following: a) pull the source code from the Github repository (as a `.tar.gz` file), b) unzip said source code file, and c) remove the source code file to clean up.
 
-``` bash
-git clone https://github.com/Comp-Bio-Pipeline-Dev-Team/functional_CRISPR_screen.git
+```bash
+## these commands pull v1.0.0! if you would like a different version, replace v1.0.0 with the appropriate release tag
+wget https://github.com/Comp-Bio-Pipeline-Dev-Team/functional_CRISPR_screen/archive/refs/tags/v1.0.0.tar.gz
+tar -zxvf v1.0.0.tar.gz
+rm v1.0.0.tar.gz
 ```
 
 ### Step 2:
 
-When the command finishes, a directory titled `functional_CRISPR_screen` should exist in your working directory. Navigate into the `functional_CRISPR_screen` directory and open the file titled `run_workflow.sh` via your favorite text editor. The contents of the file should look like so:
+After running the commands above, a directory titled `functional_CRISPR_screen-v1.0.0` should exist in your working directory. Navigate into the `functional_CRISPR_screen-v1.0.0` directory and open the file titled `run_workflow.sh` via your favorite text editor. The contents of the file should look like so:
 
 ``` bash
 #!/bin/bash 
@@ -199,7 +200,10 @@ Pipeline inputs and definitions are as follows:
 
 ### Outputs:
 
-Pipeline outputs are contained in a directory named `crispr_screen_out`/`you_our_dir_name.crispr_screen_out` (depending on user input) which should exist in your working directory upon completion of the pipeline. The directory will be structured like so:
+> [!NOTE]
+> Once you have run the full pipeline and are content with the results, you can copy or move the output directory elsewhere in your computer! 
+
+Pipeline outputs are contained in a directory named `crispr_screen_out`/`you_our_dir_name.crispr_screen_out` (depending on user input) which should exist in your working directory (`functional_crispr_screen-v1.0.0`) upon completion of the pipeline. The directory will be structured like so:
 
 ``` bash
 crispr_screen_out/
